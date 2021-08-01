@@ -6,24 +6,6 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
-const (
-	// UserStateQueue 玩家房间状态队列
-	UserStateQueue = "{ch}/CenterServer/Listen" // room -> center
-
-	// AssetChangeQueue 资产变更队列
-	AssetChangeQueue = "{ch}/user/asset/change" // room -> center
-
-	// AssetChangeResQueue 资产变更结果
-	AssetChangeResQueue = "{ch}/user/asset/change_res" // center -> room
-)
-
-/**
-example: push string "Hello" to queue
-				————————————————————
-push left ->	|o|l|l|e|H| | | | |		-> pop right
-				____________________
-*/
-
 // RedisQueue ...
 type RedisQueue interface {
 	PushData(queueName string, data []byte) (size int, err error)

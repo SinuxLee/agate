@@ -7,11 +7,6 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
-const (
-	// UserStatusChannel 通知玩家登录登出状态
-	UserStatusChannel = "{ch}/user/status" // center -> room
-)
-
 // Topic 订阅主题
 type Topic struct {
 	ChannelName      string
@@ -54,7 +49,9 @@ func (r *redisMQ) Publish(topic string, msg []byte) (err error) {
 		err = con.Err()
 		return
 	}
-	defer con.Close()
+	defer func(con redis.Conn) {
+		_ = con.Close()
+	}(con)
 
 	if _, err = redis.Int(con.Do("PUBLISH", topic, msg)); err != nil {
 		return
@@ -82,7 +79,7 @@ func (r *redisMQ) Subscribe(topic Topic) (err error) {
 		err = psCon.Subscribe(topic.ChannelName)
 	}
 	if err != nil {
-		psCon.Close()
+		_ = psCon.Close()
 		return
 	}
 
@@ -133,7 +130,7 @@ func (r *redisMQ) defaultMessageHandler(topic *Topic) {
 		_ = topic.pubSubCon.Unsubscribe(topic.ChannelName)
 	}
 
-	topic.pubSubCon.Close()
+	_ = topic.pubSubCon.Close()
 
 	r.Lock()
 	delete(r.topics, topic.ChannelName)

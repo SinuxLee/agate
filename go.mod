@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	contrib.go.opencensus.io/integrations/ocsql v0.1.7
+	github.com/asim/go-micro/plugins/client/http/v3 v3.0.0-20210726052521-c3107e6843e2
 	github.com/asim/go-micro/plugins/logger/zerolog/v3 v3.0.0-20210709115208-3fbf2c304fe0
 	github.com/asim/go-micro/plugins/registry/consul/v3 v3.0.0-20210709115208-3fbf2c304fe0
 	github.com/asim/go-micro/plugins/selector/registry v0.0.0-20210709115208-3fbf2c304fe0
@@ -13,7 +14,9 @@ require (
 	github.com/asim/go-micro/plugins/wrapper/ratelimiter/ratelimit/v3 v3.0.0-20210709115208-3fbf2c304fe0
 	github.com/asim/go-micro/plugins/wrapper/trace/opencensus/v3 v3.0.0-20210709115208-3fbf2c304fe0
 	github.com/asim/go-micro/v3 v3.5.2
-	github.com/bwmarrin/snowflake v0.3.0 // indirect
+	github.com/boltdb/bolt v1.3.1 // indirect
+	github.com/bwmarrin/snowflake v0.3.0
+	github.com/docker/libkv v0.2.1
 	github.com/dsnet/compress v0.0.1 // indirect
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.7.2
@@ -22,7 +25,6 @@ require (
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/juju/ratelimit v1.0.1
 	github.com/julianshen/gin-limiter v0.0.0-20161123033831-fc39b5e90fe7
-	github.com/micro/cli/v2 v2.1.2
 	github.com/mna/redisc v1.2.1
 	github.com/nwaples/rardecode v1.1.0 // indirect
 	github.com/pkg/errors v0.9.1

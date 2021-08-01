@@ -59,7 +59,7 @@ func NewClient(conf *Config) (Client, error) {
 	}
 
 	// 判断服务是否可用
-	if err = cli.Ping(context.Background(), readpref.Primary()); err != nil {
+	if err = cli.Ping(ctx, readpref.Primary()); err != nil {
 		return nil, err
 	}
 
@@ -75,7 +75,6 @@ type client struct {
 }
 
 func (c *client) FindOne(ctx context.Context, table string, finder interface{}, data interface{}) error {
-	// fixme 没必要每次都创建Collection
 	collection := c.cli.Database(c.conf.Database).Collection(table)
 	return collection.FindOne(ctx, finder).Decode(data)
 }
@@ -105,7 +104,7 @@ func (c *client) Traverse(ctx context.Context, table string, finder interface{},
 	batchSize := int32(200)
 	skipCount := int64(0)
 
-	cursor, err := collection.Find(context.TODO(), finder, &options.FindOptions{
+	cursor, err := collection.Find(ctx, finder, &options.FindOptions{
 		BatchSize:  &batchSize,
 		Skip:       &skipCount,
 		Projection: projection,

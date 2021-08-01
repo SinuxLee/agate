@@ -12,7 +12,7 @@ import (
 var _ Handler = (*restHandler)(nil)
 
 type Handler interface {
-	Hello(*gin.Context)
+	RegisterHandler(engine *gin.Engine)
 }
 
 func NewRestHandler(uc service.UseCase) Handler {
@@ -28,9 +28,9 @@ type restHandler struct {
 // ResponseWithData ...
 func (c *restHandler) ResponseWithData(ctx *gin.Context, data interface{}) {
 	c.innerResponse(ctx, &internal.Response{
-		Code: 0,
-		Msg:  "success",
-		Data: data,
+		Code:    0,
+		Message: "OK",
+		Data:    data,
 	})
 }
 
@@ -39,9 +39,9 @@ func (c *restHandler) ResponseWithCode(ctx *gin.Context, code int) {
 	resp := &internal.Response{Code: code}
 	desc, ok := internal.CodeText[code]
 	if ok {
-		resp.Msg = desc
+		resp.Message = desc
 	} else {
-		resp.Msg = "unknown error"
+		resp.Message = "unknown error"
 	}
 
 	c.innerResponse(ctx, resp)
@@ -50,8 +50,8 @@ func (c *restHandler) ResponseWithCode(ctx *gin.Context, code int) {
 // ResponseWithDesc ...
 func (c *restHandler) ResponseWithDesc(ctx *gin.Context, code int, desc string) {
 	c.innerResponse(ctx, &internal.Response{
-		Code: code,
-		Msg:  desc,
+		Code:    code,
+		Message: desc,
 	})
 }
 
@@ -64,23 +64,22 @@ func (c *restHandler) innerResponse(ctx *gin.Context, resp *internal.Response) {
 }
 
 func (c *restHandler) ErrorLog(ctx *gin.Context, resp *internal.Response) {
-	raw, _ := ctx.GetRawData()
 	log.Error().Str("path", ctx.Request.URL.Path).
 		Str("query", ctx.Request.URL.RawQuery).
-		Str("request", string(raw)).
 		Interface("response", resp).
 		Msg("bad response")
 }
 
-func healthCheck(engine *gin.Engine) {
+func (c *restHandler) healthCheck(engine *gin.Engine) {
 	engine.GET("/healthz", func(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "It is OK\n")
 	})
 }
 
-func RegisterHandler(engine *gin.Engine, ctrl Handler) {
-	healthCheck(engine)
+func (c *restHandler) RegisterHandler(engine *gin.Engine) {
+	c.healthCheck(engine)
 
 	group1 := engine.Group("/svr/v1")
-	group1.GET("hello", ctrl.Hello)
+	group1.GET("hello", c.Hello)
+	group1.POST("hello", c.Hello)
 }

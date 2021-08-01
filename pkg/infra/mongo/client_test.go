@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"context"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -26,7 +27,7 @@ func TestNewClient(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	data := &BsonData{}
-	if err := cli.FindOne("libz", bson.M{"name": "libz"}, data); err != nil {
+	if err := cli.FindOne(context.Background(), "libz", bson.M{"name": "libz"}, data); err != nil {
 		t.Fatal("failed to find")
 	}
 }

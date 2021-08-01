@@ -88,10 +88,6 @@ func NewMysqlPoolWithTrace(cfg *Config) (Client, error) {
 
 	// Wrap our *sql.DB with sqlx. use the original db driver name!!!
 	pool := sqlx.NewDb(db, "mysql")
-	if err != nil {
-		return nil, err
-	}
-
 	err = pool.Ping()
 	if err != nil {
 		return nil, err
@@ -113,15 +109,15 @@ type client struct {
 	db *sqlx.DB
 }
 
-func (c *client) QuerySingle(ctx context.Context, dest interface{}, query string, args ...interface{}) error {
+func (c *client) QuerySingle(_ context.Context, dest interface{}, query string, args ...interface{}) error {
 	return c.db.Get(dest, query, args...)
 }
 
-func (c *client) QueryMulti(ctx context.Context, dest interface{}, query string, args ...interface{}) error {
+func (c *client) QueryMulti(_ context.Context, dest interface{}, query string, args ...interface{}) error {
 	return c.db.Select(dest, query, args...)
 }
 
-func (c *client) Insert(ctx context.Context, query string, args ...interface{}) (int64, error) {
+func (c *client) Insert(_ context.Context, query string, args ...interface{}) (int64, error) {
 	result, err := c.db.Exec(query, args...)
 	if err != nil {
 		return 0, err
@@ -133,7 +129,7 @@ func (c *client) Insert(ctx context.Context, query string, args ...interface{}) 
 	return lastInsertId, nil
 }
 
-func (c *client) InsertNamed(ctx context.Context, query string, arg interface{}) (int64, error) {
+func (c *client) InsertNamed(_ context.Context, query string, arg interface{}) (int64, error) {
 	result, err := c.db.NamedExec(query, arg)
 	if err != nil {
 		return 0, err
@@ -145,7 +141,7 @@ func (c *client) InsertNamed(ctx context.Context, query string, arg interface{})
 	return lastInsertId, nil
 }
 
-func (c *client) Update(ctx context.Context, query string, args ...interface{}) (int64, error) {
+func (c *client) Update(_ context.Context, query string, args ...interface{}) (int64, error) {
 	result, err := c.db.Exec(query, args...)
 	if err != nil {
 		return 0, err
@@ -157,7 +153,7 @@ func (c *client) Update(ctx context.Context, query string, args ...interface{}) 
 	return rowAffects, nil
 }
 
-func (c *client) UpdateNamed(ctx context.Context, query string, arg interface{}) (int64, error) {
+func (c *client) UpdateNamed(_ context.Context, query string, arg interface{}) (int64, error) {
 	result, err := c.db.NamedExec(query, arg)
 	if err != nil {
 		return 0, err
@@ -169,7 +165,7 @@ func (c *client) UpdateNamed(ctx context.Context, query string, arg interface{})
 	return rowAffects, nil
 }
 
-func (c *client) Exec(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (c *client) Exec(_ context.Context, query string, args ...interface{}) (sql.Result, error) {
 	rlt, err := c.db.DB.Exec(query, args...)
 	if err != nil {
 		return nil, err
@@ -185,7 +181,7 @@ func (c *client) GetOriginalSource() interface{} {
 	return c.db
 }
 
-func (c *client) ReplaceIntoMulti(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (c *client) ReplaceIntoMulti(_ context.Context, query string, args ...interface{}) (sql.Result, error) {
 	multiQuery, multiArgs, err := sqlx.In(query, args...)
 	if err != nil {
 		return nil, err

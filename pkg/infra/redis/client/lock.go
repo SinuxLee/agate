@@ -81,7 +81,7 @@ func getRedisLock(cli RedisClient, key string, token string) bool {
 	if err != nil {
 		return false
 	}
-	return value == "OK"
+	return value == RedisDoSuccess
 }
 
 func releaseRedisLock(cli RedisClient, key string, token string) error {
@@ -90,7 +90,9 @@ func releaseRedisLock(cli RedisClient, key string, token string) error {
 	if err == nil {
 		return err
 	}
-	defer con.Close()
+	defer func(con redis.Conn) {
+		_ = con.Close()
+	}(con)
 
 	_, err = lockScript.Do(con, key, token)
 

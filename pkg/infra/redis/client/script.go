@@ -6,6 +6,8 @@ import (
 	"path"
 	"time"
 
+	redis2 "github.com/gomodule/redigo/redis"
+
 	"template/pkg/infra/redis"
 
 	"github.com/rs/zerolog/log"
@@ -14,26 +16,10 @@ import (
 // lua脚本
 const (
 	luaExt = ".lua"
-
-	HMGET      = "hmget.lua"
-	SADD       = "sadd.lua"
-	SRAND      = "srand.lua"
-	STOPCAR    = "stopcar.lua"
-	TAKECAR    = "takecar.lua"
-	ADDCARPORT = "addcarport.lua"
-	OFFLINEMSG = "offlinemsg.lua"
 )
 
 // 脚本名称和参数个数的映射
-var scriptParam = map[string]int{
-	HMGET: 1,
-	SADD:  2,
-	SRAND: 2,
-	// STOPCAR:    1,
-	// TAKECAR:    1,
-	ADDCARPORT: 1,
-	OFFLINEMSG: 1,
-}
+var scriptParam = map[string]int{}
 var scriptMap map[string]*redis.Script
 var rdsCli RedisClient
 
@@ -76,7 +62,6 @@ func searchFile(pathName string) (error, []string) {
 }
 
 // fixme: merge to client
-
 func loadLuaScript(path, file string, keyCount int) error {
 	scriptPath := path + "/" + file
 	content, err := ioutil.ReadFile(scriptPath)
@@ -111,7 +96,9 @@ func execute(file string, args ...interface{}) (reply interface{}, err error) {
 	if con.Err() != nil {
 		return nil, con.Err()
 	}
-	defer con.Close()
+	defer func(con redis2.Conn) {
+		_ = con.Close()
+	}(con)
 	reply, err = script.Do(con, args...)
 
 	return reply, err

@@ -2,13 +2,16 @@ package app
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"flag"
+	"fmt"
+	"net"
 	"os"
 	"syscall"
-	"template/internal/store"
 
-	"template/internal/api/rest"
 	"template/internal/service"
+	"template/internal/store"
 	"template/pkg/infra/mongo"
 	"template/pkg/infra/mysql"
 	"template/pkg/infra/redis/client"
@@ -16,13 +19,20 @@ import (
 	"github.com/asim/go-micro/v3"
 	"github.com/asim/go-micro/v3/config"
 	"github.com/asim/go-micro/v3/web"
-	"github.com/gin-gonic/gin"
+	libKVStore "github.com/docker/libkv/store"
 	"golang.org/x/sync/errgroup"
 )
 
+const (
+	serverName    = "svr"
+	consulAddrKey = "consul_addr"
+	consulAddrDef = "127.0.0.1:8500"
+	logLevelKey   = "loglevel"
+)
+
 func init() {
-	flag.String("consul_addr", "127.0.0.1:8500", "the consul address")
-	flag.String("loglevel", "info", "log level")
+	flag.String(consulAddrKey, consulAddrDef, "the consul address")
+	flag.String(logLevelKey, "info", "log level")
 	flag.Parse()
 }
 
@@ -34,7 +44,6 @@ type App interface {
 
 // New ...
 func New(options ...Option) (App, error) {
-	// init app component
 	svc := &app{}
 	for _, opt := range options {
 		if err := opt(svc); err != nil {
@@ -46,16 +55,16 @@ func New(options ...Option) (App, error) {
 }
 
 type app struct {
-	rpcService  micro.Service
-	webService  web.Service
-	ginRouter   *gin.Engine
-	restHandler rest.Handler
-	useCase     service.UseCase
-	conf        config.Config
-	redisCli    client.RedisClient
-	mysqlCli    mysql.Client
-	mongoCli    mongo.Client
-	dao         store.Dao
+	nodeID     int
+	rpcService micro.Service
+	webService web.Service
+	useCase    service.UseCase
+	conf       config.Config
+	redisCli   client.RedisClient
+	mysqlCli   mysql.Client
+	mongoCli   mongo.Client
+	dao        store.Dao
+	kvStore    libKVStore.Store
 }
 
 // Run ...
@@ -93,5 +102,37 @@ func (a *app) Run(ch chan<- os.Signal) error {
 
 // Stop ...
 func (a *app) Stop() error {
+	return nil
+}
+
+func (a *app) intranetIP() (string, error) {
+	addr, err := net.InterfaceAddrs()
+	if err != nil {
+		return "", err
+	}
+
+	for _, addr := range addr {
+		if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
+			if ipNet.IP.To4() != nil && ipNet.IP.IsGlobalUnicast() {
+				return ipNet.IP.String(), nil
+			}
+		}
+	}
+
+	return "", errors.New("valid local IP not found")
+}
+
+func (a *app) getConsulConf(key string, data interface{}) error {
+	consulKey := fmt.Sprintf("%v/%v", serverName, key)
+	kvPair, err := a.kvStore.Get(consulKey)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(kvPair.Value, data)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

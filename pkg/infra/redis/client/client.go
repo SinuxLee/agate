@@ -36,6 +36,10 @@ type redisClient struct {
 func NewClient(conf Config) RedisClient {
 	entity := &redisClient{config: conf}
 	entity.redisPoll = infraRedis.NewPool(conf.Address, conf.Password, &entity.config.PoolConfig)
+	if entity.redisPoll == nil {
+		return nil
+	}
+
 	c := entity.getConnection() //如果redis地址填错了，这里会阻塞
 	defer func() {
 		_ = c.Close()
@@ -45,7 +49,7 @@ func NewClient(conf Config) RedisClient {
 	}
 
 	if conf.DbIndex != 0 {
-		entity.ExecuteCommand("select ", conf.DbIndex)
+		_, _ = entity.ExecuteCommand("select ", conf.DbIndex)
 	}
 
 	return entity

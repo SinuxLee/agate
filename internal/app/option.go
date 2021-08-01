@@ -1,7 +1,6 @@
 package app
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -13,6 +12,7 @@ import (
 	"template/internal/store"
 	"template/pkg/infra/mongo"
 	"template/pkg/infra/mysql"
+	"template/pkg/infra/nid"
 	"template/pkg/infra/redis"
 	redisClient "template/pkg/infra/redis/client"
 	"template/pkg/middleware"
@@ -34,15 +34,19 @@ import (
 	"github.com/asim/go-micro/v3/selector"
 	"github.com/asim/go-micro/v3/server"
 	"github.com/asim/go-micro/v3/web"
+	"github.com/docker/libkv"
+	libKVStore "github.com/docker/libkv/store"
+	libKVConsul "github.com/docker/libkv/store/consul"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/juju/ratelimit"
-	"github.com/micro/cli/v2"
+	"github.com/pkg/errors"
 )
 
 // Option ...
 type Option func(*app) error
 
+// Config ..
 func Config() Option {
 	return func(a *app) (err error) {
 		flagSource := flag.NewSource(
@@ -59,142 +63,64 @@ func Config() Option {
 			return err
 		}
 
-		logger.Info("Load config successfully.")
 		return nil
 	}
 }
 
+// NodeID ...
+func NodeID() Option {
+	return func(a *app) error {
+		ip, err := a.intranetIP()
+		if err != nil {
+			return err
+		}
+
+		addr := a.conf.Get(consulAddrKey).String(consulAddrDef)
+		nodeNamed, err := nid.NewConsulNamed(addr)
+		if err != nil {
+			return err
+		}
+
+		a.nodeID, err = nodeNamed.GetNodeID(&nid.NameHolder{
+			LocalPath:  os.Args[0],
+			LocalIP:    ip,
+			ServiceKey: serverName,
+		})
+
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+}
+
+// Logger ...
 func Logger() Option {
 	return func(a *app) error {
-		level, err := logger.GetLevel(a.conf.Get("loglevel").String("info"))
+		lv := a.conf.Get("loglevel").String("debug")
+		level, err := logger.GetLevel(lv)
 		if err != nil {
 			level = logger.DebugLevel
 		}
 
-		logger.DefaultLogger = zerolog.NewLogger(logger.WithOutput(os.Stdout), logger.WithLevel(level))
-
+		logger.DefaultLogger = zerolog.NewLogger(logger.WithOutput(os.Stdout),
+			logger.WithLevel(level), logger.WithFields(map[string]interface{}{"nodeId": a.nodeID}))
 		logger.Info("Init logger successfully.")
 		return nil
 	}
 }
 
-func RpcService() Option {
-	return func(a *app) error {
-		a.rpcService = micro.NewService(
-			micro.Server(server.NewServer(
-				server.Name("greeterRpc"), // consul 中的 service name
-				server.Id("1001"),
-				server.Transport(grpc.NewTransport()),
-				server.Metadata(map[string]string{
-					"nodeId":      "1001",
-					"serviceName": "greeter",
-					"type":        "rpcService",
-				}),
-				server.Version(server.DefaultVersion),
-				server.Address(":18086"),
-				server.RegisterTTL(time.Second*3),
-				server.RegisterInterval(time.Second),
-				server.Registry(consul.NewRegistry(
-					registry.Addrs("127.0.0.1:8500"),
-					registry.Timeout(time.Second*5),
-					// consul.TCPCheck(time.Second),
-				)),
-				server.WrapHandler(opencensus.NewHandlerWrapper()),
-				server.WrapHandler(microLimiter.NewHandlerWrapper(
-					ratelimit.NewBucketWithRate(5000, 5000), false),
-				),
-			)),
-			micro.Client(client.NewClient(
-				client.Selector(selector.NewSelector(selectorReg.TTL(time.Hour*2))),
-				client.PoolSize(50),
-				client.PoolTTL(time.Minute*5),
-				client.DialTimeout(time.Second*2),
-				client.RequestTimeout(time.Second*5),
-			)),
-			//micro.Broker(),
-		)
-		a.rpcService.Init()
-		err := proto.RegisterGreeterHandler(a.rpcService.Server(), rpc.NewRpcHandler(a.useCase))
+// KVStore ...
+func KVStore() Option {
+	return func(a *app) (err error) {
+		libKVConsul.Register()
+		addr := a.conf.Get(consulAddrKey).String(consulAddrDef)
+		a.kvStore, err = libkv.NewStore(libKVStore.CONSUL, []string{addr},
+			&libKVStore.Config{ConnectionTimeout: 10 * time.Second})
 		if err != nil {
 			return err
 		}
-
-		logger.Info("New rpc service successfully.")
-		return nil
-	}
-}
-
-// Handler ...
-func Handler() Option {
-	return func(a *app) (err error) {
-		a.restHandler = rest.NewRestHandler(a.useCase)
-		if a.restHandler == nil {
-			return errors.New("create rest handler failed")
-		}
-
-		logger.Info("New rest handler successfully.")
-		return
-	}
-}
-
-// Router ...
-func Router() Option {
-	return func(a *app) (err error) {
-		ginMode := gin.Mode()
-		if ginMode == gin.ReleaseMode {
-			a.ginRouter = gin.New()
-			a.ginRouter.Use(gin.Recovery(), cors.Default())
-		} else {
-			a.ginRouter = gin.Default()
-		}
-
-		a.ginRouter.Use(middleware.NewRateLimiter(time.Second, 5000))
-		rest.RegisterHandler(a.ginRouter, a.restHandler)
-
-		a.ginRouter.NoRoute(func(ctx *gin.Context) {
-			ctx.AbortWithStatus(http.StatusNotFound)
-		})
-
-		logger.Info("New web router successfully.")
-		return
-	}
-}
-
-func WebService() Option {
-	return func(a *app) error {
-		a.webService = web.NewService(
-			//web.MicroService(micro.NewService(micro.Server(
-			//	server.NewServer()))),
-			web.Name("greeterRest"),
-			web.Id(fmt.Sprintf("greeterRest-%v", 9999)),
-			web.Version("latest"),
-			web.Metadata(map[string]string{
-				"nodeId":      "9999",
-				"serviceName": "greeter",
-				"type":        "greeterRest",
-			}),
-			web.RegisterTTL(time.Second*30),
-			web.RegisterInterval(time.Second*10),
-			web.Registry(consul.NewRegistry(
-				registry.Addrs("127.0.0.1:8500"),
-				registry.Timeout(time.Second*10),
-			)),
-			web.Address(":8086"),
-			web.Flags(&cli.BoolFlag{
-				Name:  "run_client",
-				Usage: "Launch the client",
-			}),
-			web.Handler(a.ginRouter),
-		)
-
-		logger.Info("New web service successfully.")
-		return nil
-	}
-}
-
-func UseCase() Option {
-	return func(a *app) error {
-		a.useCase = service.NewUseCase(a.dao)
 		return nil
 	}
 }
@@ -202,16 +128,22 @@ func UseCase() Option {
 // RedisCli ...
 func RedisCli() Option {
 	return func(a *app) error {
+		conf := &redisConf{}
+		err := a.getConsulConf("redis", conf)
+		if err != nil {
+			return err
+		}
+
 		makeClientFunc := redisClient.NewClient
-		//if !a.conf.IsDebugMode() {
-		//	makeClientFunc = client.NewClientNewCluster
-		//}
+		if conf.Mode == redisModeCluster {
+			makeClientFunc = redisClient.NewCluster
+		}
 
 		a.redisCli = makeClientFunc(redisClient.Config{
-			Address:  "127.0.0.1:6379",
-			Password: "",
+			Address:  conf.Addr,
+			Password: conf.Password,
 			PoolConfig: redis.PoolConfig{
-				MaxIdle:     10,
+				MaxIdle:     20,
 				MaxActive:   200,
 				IdleTimeout: time.Minute,
 				Wait:        true,
@@ -219,7 +151,7 @@ func RedisCli() Option {
 		})
 
 		if a.redisCli == nil {
-			return errors.New("create redis client failed")
+			return errors.Errorf("create redis client failed, %v", conf.Info())
 		}
 
 		logger.Info("New Redis client successfully.")
@@ -227,51 +159,64 @@ func RedisCli() Option {
 	}
 }
 
+// MySQLCli ...
 func MySQLCli() Option {
-	return func(a *app) (err error) {
+	return func(a *app) error {
+		conf := &mysqlConf{}
+		err := a.getConsulConf("mysql", conf)
+		if err != nil {
+			return err
+		}
+
 		a.mysqlCli, err = mysql.NewMysqlPoolWithTrace(&mysql.Config{
-			Host:     "127.0.0.1",
-			Port:     3306,
-			User:     "root",
-			Password: "Admin123",
-			DBName:   "db_player",
+			Host:     conf.Host,
+			Port:     conf.Port,
+			User:     conf.User,
+			Password: conf.Password,
+			DBName:   conf.Database,
 			CharSet:  "utf8mb4",
 			MaxConn:  200,
 			IdleConn: 10,
 		})
 
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "%v", conf.Info())
 		}
 
 		if a.mysqlCli == nil {
-			err = errors.New("create mysql client failed")
-			return
+			return errors.Errorf("create mysql client failed, %v", conf.Info())
 		}
 
 		logger.Info("New MySQL client successfully.")
-		return
+		return nil
 	}
 }
 
+// MongoCli ...
 func MongoCli() Option {
 	return func(a *app) (err error) {
+		conf := &mongodbConf{}
+		err = a.getConsulConf("mongodb", conf)
+		if err != nil {
+			return err
+		}
+
 		a.mongoCli, err = mongo.NewClient(&mongo.Config{
-			Hosts:       []string{"127.0.0.1:27017"},
-			Database:    "ffa",
-			UserName:    "",
-			Password:    "",
+			Hosts:       conf.Host,
+			Database:    conf.Database,
+			UserName:    conf.User,
+			Password:    conf.Password,
 			MaxPoolSize: 200,
 			MinPoolSize: 10,
 			MaxIdleTime: 3600,
 		})
 
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "%v", conf.Info())
 		}
 
 		if a.mongoCli == nil {
-			err = errors.New("create mongo client failed")
+			err = errors.Errorf("create mongo client failed, %v", conf.Info())
 		}
 
 		logger.Info("New Mongodb client successfully.")
@@ -289,5 +234,128 @@ func Dao() Option {
 
 		logger.Info("New dao successfully.")
 		return
+	}
+}
+
+// UseCase ...
+func UseCase() Option {
+	return func(a *app) error {
+		a.useCase = service.NewUseCase(a.dao)
+		return nil
+	}
+}
+
+// RpcService ...
+func RpcService() Option {
+	return func(a *app) error {
+		conf := &rpcConf{}
+		err := a.getConsulConf("rpc", conf)
+		if err != nil {
+			return err
+		}
+
+		consulAddr := a.conf.Get(consulAddrKey).String(consulAddrDef)
+		srvName := fmt.Sprintf("%vRPC", serverName)
+		serverID := fmt.Sprintf("%02v", a.nodeID)
+		a.rpcService = micro.NewService(
+			micro.Server(server.NewServer(
+				server.Name(srvName), // consul 中的 service name
+				server.Id(serverID),
+				server.Transport(grpc.NewTransport()),
+				server.Metadata(map[string]string{
+					"nodeId":      serverID,
+					"serviceName": srvName,
+					"type":        "rpc",
+				}),
+				server.Address(conf.Port),
+				server.RegisterTTL(time.Second*3),
+				server.RegisterInterval(time.Second),
+				server.Registry(consul.NewRegistry(
+					registry.Addrs(consulAddr),
+					registry.Timeout(time.Second*2),
+				)),
+				server.WrapHandler(opencensus.NewHandlerWrapper()),
+				server.WrapHandler(microLimiter.NewHandlerWrapper(
+					ratelimit.NewBucketWithRate(5000, 5000), false),
+				),
+			)),
+			micro.Client(client.NewClient(
+				client.Selector(selector.NewSelector(selectorReg.TTL(time.Hour))),
+				client.PoolSize(50),
+				client.PoolTTL(time.Minute*5),
+				client.DialTimeout(time.Second*2),
+				client.RequestTimeout(time.Second*5),
+			)),
+		)
+		a.rpcService.Init()
+		err = proto.RegisterGreeterHandler(a.rpcService.Server(), rpc.NewRpcHandler(a.useCase))
+		if err != nil {
+			return err
+		}
+
+		logger.Info("New rpc service successfully.")
+		return nil
+	}
+}
+
+// WebService ...
+func WebService() Option {
+	return func(a *app) error {
+		conf := &webConf{}
+		err := a.getConsulConf("web", conf)
+		if err != nil {
+			return err
+		}
+
+		// consul配置优先级高于环境变量
+		if conf.GinMode != gin.DebugMode {
+			gin.SetMode(conf.GinMode)
+		}
+
+		// 创建路由
+		var ginRouter *gin.Engine
+		ginMode := gin.Mode()
+		if ginMode != gin.DebugMode {
+			ginRouter = gin.New()
+			if ginMode == gin.TestMode {
+				ginRouter.Use(gin.Logger())
+			}
+			ginRouter.Use(gin.Recovery())
+		} else {
+			ginRouter = gin.Default()
+		}
+		ginRouter.Use(cors.Default(), middleware.NewRateLimiter(time.Second, 5000))
+		ginRouter.NoRoute(func(ctx *gin.Context) {
+			ctx.AbortWithStatus(http.StatusNotFound)
+		})
+
+		// 构建 web handler
+		rest.NewRestHandler(a.useCase).RegisterHandler(ginRouter)
+
+		// 注册服务
+		consulAddr := a.conf.Get(consulAddrKey).String(consulAddrDef)
+		webName := fmt.Sprintf("%vWEB", serverName)
+		webID := fmt.Sprintf("%v-%02v", webName, a.nodeID)
+		a.webService = web.NewService(
+			web.Name(webName),
+			web.Id(webID),
+			web.Metadata(map[string]string{
+				"nodeId":      webID,
+				"serviceName": webName,
+				"type":        "web",
+				"protocol":    "http",
+			}),
+			web.RegisterTTL(time.Second*3),
+			web.RegisterInterval(time.Second),
+			web.Registry(consul.NewRegistry(
+				registry.Addrs(consulAddr),
+				registry.Timeout(time.Second*2),
+			)),
+			web.Address(conf.Port),
+			web.Handler(ginRouter),
+		)
+
+		logger.Info("New web service successfully.")
+		return nil
 	}
 }

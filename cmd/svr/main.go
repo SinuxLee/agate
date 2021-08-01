@@ -11,14 +11,14 @@ import (
 func main() {
 	srv, err := app.New(
 		app.Config(),
+		app.NodeID(),
 		app.Logger(),
+		app.KVStore(),
 		app.RedisCli(),
 		app.MySQLCli(),
 		app.MongoCli(),
 		app.Dao(),
 		app.UseCase(),
-		app.Handler(),
-		app.Router(),
 		app.WebService(),
 		app.RpcService(),
 	)

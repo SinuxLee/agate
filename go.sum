@@ -93,6 +93,8 @@ github.com/asim/go-micro/examples/v3 v3.0.0-20210709115208-3fbf2c304fe0 h1:ugt9c
 github.com/asim/go-micro/examples/v3 v3.0.0-20210709115208-3fbf2c304fe0/go.mod h1:RBi4UiI/2ZNQm3ojh/q/MiWDVkBGhbI2KJ1B3Fr0fDo=
 github.com/asim/go-micro/plugins/broker/memory/v3 v3.0.0-20210630062103-c13bb07171bc/go.mod h1:EH0EOjRcyefTt6Db72aX3My8dowi7QvTDaQc8AYqHjw=
 github.com/asim/go-micro/plugins/client/http/v3 v3.0.0-20210403073940-e7a7e3a05092/go.mod h1:Ku9ESaA5G1BIU9CYYM+nXxIDoDt+7X4lJse/iU0R7dI=
+github.com/asim/go-micro/plugins/client/http/v3 v3.0.0-20210726052521-c3107e6843e2 h1:eQW3i7AMR2LwfKFps4Do9KojJgG1a3G8HM1KAZS8T3w=
+github.com/asim/go-micro/plugins/client/http/v3 v3.0.0-20210726052521-c3107e6843e2/go.mod h1:MtnBs3RZ4zmNIkmsGKmeVqOxoWK644R4sopNUIGG80Y=
 github.com/asim/go-micro/plugins/config/encoder/toml/v3 v3.0.0-20210403073940-e7a7e3a05092/go.mod h1:D+mkq2EASL7nsd7UNLpKZZsuhCnxladX3sfM/gmcW+M=
 github.com/asim/go-micro/plugins/config/source/grpc/v3 v3.0.0-20210403073940-e7a7e3a05092/go.mod h1:zQevfYGVnE3ojeKbuiawb/vU+TuolXSVilxu9Nyhr/g=
 github.com/asim/go-micro/plugins/logger/zerolog/v3 v3.0.0-20210709115208-3fbf2c304fe0 h1:LOG9Wi6liP62hsxn5O0FOOo7XI4Iot6ZGydSpOfh3Fo=
@@ -108,6 +110,8 @@ github.com/asim/go-micro/plugins/selector/shard/v3 v3.0.0-20210709115208-3fbf2c3
 github.com/asim/go-micro/plugins/server/http/v3 v3.0.0-20210403073940-e7a7e3a05092/go.mod h1:Oe0f4zsBx6if1scvMrL/4mNfkD7URaqkvhQWnWogcws=
 github.com/asim/go-micro/plugins/transport/grpc/v3 v3.0.0-20210709115208-3fbf2c304fe0 h1:Iq6CxtgZXJQ2DAeBz7WDXTfLvkYsg+ZyVb2zvzlso30=
 github.com/asim/go-micro/plugins/transport/grpc/v3 v3.0.0-20210709115208-3fbf2c304fe0/go.mod h1:mFylCnQ1oCV9cI64CNDxEoWu+XsR+MGtPQTiuB01Pow=
+github.com/asim/go-micro/plugins/transport/http/v3 v3.0.0-20210726052521-c3107e6843e2 h1:p3Of+MBuWgN8J8aJ0snEitTuaN5YCzWv7cUNmViVtIs=
+github.com/asim/go-micro/plugins/transport/http/v3 v3.0.0-20210726052521-c3107e6843e2/go.mod h1:CdU3xt8MhVW15ZLWdbjpUCZQgLS497qaKAJSRqW1AgM=
 github.com/asim/go-micro/plugins/transport/memory/v3 v3.0.0-20210630062103-c13bb07171bc/go.mod h1:Nt5F4E/Q4vUGilo7nfp98EiZz/G/ASm2mMHUaPn0hYY=
 github.com/asim/go-micro/plugins/wrapper/breaker/hystrix/v3 v3.0.0-20210709115208-3fbf2c304fe0 h1:RHjPb0RSvDiM+TN++OVb65fLPQlfvPS3dvXDcbMrqUo=
 github.com/asim/go-micro/plugins/wrapper/breaker/hystrix/v3 v3.0.0-20210709115208-3fbf2c304fe0/go.mod h1:hTo4FZWjUl3yZ6rKR3tQy5E5AZ8ejfTlkw3J/CTJmVo=
@@ -136,6 +140,8 @@ github.com/bitly/go-simplejson v0.5.0/go.mod h1:cXHtHw4XUPsvGaxgjIAn8PhEWG9NfngE
 github.com/bketelsen/crypt v0.0.3-0.20200106085610-5cbc8cc4026c/go.mod h1:MKsuJmJgSg28kpZDP6UIiPt0e0Oz0kqKNGyRaWEPv84=
 github.com/blang/semver v3.1.0+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
 github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869/go.mod h1:Ekp36dRnpXw/yCqJaO+ZrUyxD+3VXMFFr56k5XYrpB4=
+github.com/boltdb/bolt v1.3.1 h1:JQmyP4ZBrce+ZQu0dY660FMfatumYDLun9hBCUVIkF4=
+github.com/boltdb/bolt v1.3.1/go.mod h1:clJnj/oiGkjum5o1McbSZDSLxVThjynRyGBgiAx27Ps=
 github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl3JlRe0mD8=
 github.com/bradfitz/go-smtpd v0.0.0-20170404230938-deb6d6237625/go.mod h1:HYsPBTaaSFSlLx/70C2HPIMNZpVV8+vt/A+FMnYP11g=
 github.com/buger/jsonparser v0.0.0-20181115193947-bf1c66bbce23/go.mod h1:bbYlZJ7hK1yFx9hf58LP0zeX7UjIGs20ufpu3evjr+s=
@@ -204,6 +210,8 @@ github.com/docker/docker v1.4.2-0.20191101170500-ac7306503d23/go.mod h1:eEKB0N0r
 github.com/docker/docker v20.10.7+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/go-connections v0.4.0/go.mod h1:Gbd7IOopHjR8Iph03tsViu4nIes5XhDvyHbTtUxmeec=
 github.com/docker/go-units v0.4.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
+github.com/docker/libkv v0.2.1 h1:PNXYaftMVCFS5CmnDtDWTg3wbBO61Q/cEo3KX1oKxto=
+github.com/docker/libkv v0.2.1/go.mod h1:r5hEwHwW8dr0TFBYGCarMNbrQOiwL1xoqDYZ/JqoTK0=
 github.com/dsnet/compress v0.0.1 h1:PlZu0n3Tuv04TzpfPbrnI0HW/YwodEXDS+oPKahKF0Q=
 github.com/dsnet/compress v0.0.1/go.mod h1:Aw8dCMJ7RioblQeTqt88akK31OvO8Dhf5JflhBbQEHo=
 github.com/dsnet/golib v0.0.0-20171103203638-1ea166775780/go.mod h1:Lj+Z9rebOhdfkVLjJ8T6VcRQv3SXugXy999NBtR9aFY=

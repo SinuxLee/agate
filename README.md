@@ -13,7 +13,7 @@ protoc --proto_path=. --micro_out=../ --go_out=../  *.proto
 -   consul 节点ID生成、服务注册与发现、配置中心
 -   go-micro 请求的熔断、响应的限流、请求的负载均衡、消息队列
 -   统一的存储层 mysql、mongodb
--   缓存及分布式锁 redis、groupcache
+-   缓存及分布式锁 redis、bigcache
 -   APM Application Performance Management） 监控（metrics）、日志（logs）、追踪（tracing）
 -   监控（Prometheus、Grafana） 操作系统、进程状态、请求信息、中间件、存储信息
 -   日志 EFK 展示面板、日志报警
