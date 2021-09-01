@@ -13,10 +13,12 @@ import (
 	"template/pkg/infra/mongo"
 	"template/pkg/infra/mysql"
 	"template/pkg/infra/nid"
-	"template/pkg/infra/redis"
-	redisClient "template/pkg/infra/redis/client"
+
+	//redisClient "template/pkg/infra/redis/client"
 	"template/pkg/middleware"
 	"template/pkg/proto"
+
+	"github.com/go-redis/redis/v8"
 
 	"github.com/asim/go-micro/plugins/logger/zerolog/v3"
 	"github.com/asim/go-micro/plugins/registry/consul/v3"
@@ -134,20 +136,13 @@ func RedisCli() Option {
 			return err
 		}
 
-		makeClientFunc := redisClient.NewClient
-		if conf.Mode == redisModeCluster {
-			makeClientFunc = redisClient.NewCluster
-		}
-
-		a.redisCli = makeClientFunc(redisClient.Config{
-			Address:  conf.Addr,
+		a.redisCli = redis.NewClient(&redis.Options{
+			Addr:     conf.Addr,
 			Password: conf.Password,
-			PoolConfig: redis.PoolConfig{
-				MaxIdle:     20,
-				MaxActive:   200,
-				IdleTimeout: time.Minute,
-				Wait:        true,
-			},
+			//MaxRetries:  3,               // default 3
+			DialTimeout: 3 * time.Second, // default 5 second
+			ReadTimeout: 3 * time.Second, // default 3 second
+			//PoolSize:    100,             // default is 10 * cpu count( reported by runtime.GOMAXPOCS)
 		})
 
 		if a.redisCli == nil {
@@ -227,7 +222,7 @@ func MongoCli() Option {
 // Dao ...
 func Dao() Option {
 	return func(a *app) (err error) {
-		a.dao = store.NewDao(a.mysqlCli, a.mongoCli)
+		a.dao = store.NewDao(a.redisCli, a.mysqlCli, a.mongoCli)
 		if a.dao == nil {
 			return errors.New("create dao failed")
 		}
