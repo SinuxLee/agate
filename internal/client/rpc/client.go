@@ -27,7 +27,7 @@ type GreeterClient interface {
 func NewGreeterClient(consulAddr string) GreeterClient {
 	reg := consul.NewRegistry(
 		registry.Addrs(consulAddr),
-		registry.Timeout(time.Second*10),
+		// registry.Timeout(time.Second*10),
 	)
 
 	sel := selector.NewSelector(

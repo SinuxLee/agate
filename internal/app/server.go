@@ -23,7 +23,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const (
+var (
 	serverName    = "svr"
 	consulAddrKey = "consul_addr"
 	consulAddrDef = "127.0.0.1:8500"

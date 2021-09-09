@@ -287,7 +287,7 @@ func RpcService() Option {
 				client.RequestTimeout(time.Second*5),
 			)),
 		)
-		a.rpcService.Init()
+
 		err = proto.RegisterGreeterHandler(a.rpcService.Server(), rpc.NewRpcHandler(a.useCase))
 		if err != nil {
 			return err
