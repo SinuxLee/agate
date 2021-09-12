@@ -98,7 +98,7 @@ func NodeID() Option {
 // Logger ...
 func Logger() Option {
 	return func(a *app) error {
-		lv := a.conf.Get("loglevel").String("debug")
+		lv := a.conf.Get(logLevelKey).String(logLevelDef)
 		level, err := logger.GetLevel(lv)
 		if err != nil {
 			level = logger.DebugLevel

@@ -197,3 +197,5 @@ logs/
 log/
 *.tar.gz
 *.tgz
+cli
+svr
