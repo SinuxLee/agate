@@ -13,34 +13,29 @@ import (
 	"template/pkg/infra/mongo"
 	"template/pkg/infra/mysql"
 	"template/pkg/infra/nid"
-
-	//redisClient "template/pkg/infra/redis/client"
 	"template/pkg/middleware"
 	"template/pkg/proto"
 
-	"github.com/go-redis/redis/v8"
-
 	"github.com/asim/go-micro/plugins/logger/zerolog/v3"
 	"github.com/asim/go-micro/plugins/registry/consul/v3"
-	selectorReg "github.com/asim/go-micro/plugins/selector/registry"
 	"github.com/asim/go-micro/plugins/transport/grpc/v3"
 	microLimiter "github.com/asim/go-micro/plugins/wrapper/ratelimiter/ratelimit/v3"
 	"github.com/asim/go-micro/plugins/wrapper/trace/opencensus/v3"
 	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/client"
 	"github.com/asim/go-micro/v3/config"
 	"github.com/asim/go-micro/v3/config/source/env"
 	"github.com/asim/go-micro/v3/config/source/flag"
 	"github.com/asim/go-micro/v3/logger"
 	"github.com/asim/go-micro/v3/registry"
-	"github.com/asim/go-micro/v3/selector"
 	"github.com/asim/go-micro/v3/server"
 	"github.com/asim/go-micro/v3/web"
 	"github.com/docker/libkv"
 	libKVStore "github.com/docker/libkv/store"
 	libKVConsul "github.com/docker/libkv/store/consul"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"github.com/juju/ratelimit"
 	"github.com/pkg/errors"
 )
@@ -136,14 +131,28 @@ func RedisCli() Option {
 			return err
 		}
 
-		a.redisCli = redis.NewClient(&redis.Options{
-			Addr:     conf.Addr,
-			Password: conf.Password,
-			//MaxRetries:  3,               // default 3
-			DialTimeout: 3 * time.Second, // default 5 second
-			ReadTimeout: 3 * time.Second, // default 3 second
-			//PoolSize:    100,             // default is 10 * cpu count( reported by runtime.GOMAXPOCS)
-		})
+		if conf.Mode == redisModeCluster {
+			a.redisCli = redis.NewClusterClient(&redis.ClusterOptions{
+				Addrs:        []string{conf.Addr},
+				MaxRedirects: 3,
+				Password:     conf.Password,
+				MaxRetries:   3,
+				PoolSize:     200,
+				MinIdleConns: 20,
+				MaxConnAge:   time.Hour,
+				IdleTimeout:  time.Minute,
+			})
+		} else {
+			a.redisCli = redis.NewClient(&redis.Options{
+				Addr:         conf.Addr,
+				Password:     conf.Password,
+				MaxRetries:   3,
+				PoolSize:     200,
+				MinIdleConns: 20,
+				MaxConnAge:   time.Hour,
+				IdleTimeout:  time.Minute,
+			})
+		}
 
 		if a.redisCli == nil {
 			return errors.Errorf("create redis client failed, %v", conf.Info())
@@ -263,23 +272,13 @@ func RpcService() Option {
 					"type":        "rpc",
 				}),
 				server.Address(conf.Port),
-				server.RegisterTTL(time.Second*3),
-				server.RegisterInterval(time.Second),
 				server.Registry(consul.NewRegistry(
 					registry.Addrs(consulAddr),
-					registry.Timeout(time.Second*2),
 				)),
 				server.WrapHandler(opencensus.NewHandlerWrapper()),
 				server.WrapHandler(microLimiter.NewHandlerWrapper(
-					ratelimit.NewBucketWithRate(5000, 5000), false),
+					ratelimit.NewBucketWithQuantum(time.Second, 10000, 10000), false),
 				),
-			)),
-			micro.Client(client.NewClient(
-				client.Selector(selector.NewSelector(selectorReg.TTL(time.Hour))),
-				client.PoolSize(50),
-				client.PoolTTL(time.Minute*5),
-				client.DialTimeout(time.Second*2),
-				client.RequestTimeout(time.Second*5),
 			)),
 		)
 
@@ -319,10 +318,11 @@ func WebService() Option {
 		} else {
 			ginRouter = gin.Default()
 		}
-		ginRouter.Use(cors.Default(), middleware.NewRateLimiter(time.Second, 5000))
+		ginRouter.Use(cors.Default(), middleware.NewRateLimiter(time.Second, 10000))
 		ginRouter.NoRoute(func(ctx *gin.Context) {
 			ctx.AbortWithStatus(http.StatusNotFound)
 		})
+		pprof.Register(ginRouter)
 
 		// 构建 web handler
 		rest.NewRestHandler(a.useCase).RegisterHandler(ginRouter)
@@ -340,11 +340,8 @@ func WebService() Option {
 				"type":        "web",
 				"protocol":    "http",
 			}),
-			web.RegisterTTL(time.Second*3),
-			web.RegisterInterval(time.Second),
 			web.Registry(consul.NewRegistry(
 				registry.Addrs(consulAddr),
-				registry.Timeout(time.Second*2),
 			)),
 			web.Address(conf.Port),
 			web.Handler(ginRouter),

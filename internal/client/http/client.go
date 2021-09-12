@@ -8,8 +8,6 @@ import (
 	"github.com/asim/go-micro/plugins/client/http/v3"
 	"github.com/asim/go-micro/plugins/registry/consul/v3"
 	selectorReg "github.com/asim/go-micro/plugins/selector/registry"
-	"github.com/asim/go-micro/plugins/wrapper/breaker/hystrix/v3"
-	"github.com/asim/go-micro/plugins/wrapper/trace/opencensus/v3"
 	microClient "github.com/asim/go-micro/v3/client"
 	"github.com/asim/go-micro/v3/registry"
 	"github.com/asim/go-micro/v3/selector"
@@ -31,7 +29,7 @@ type Client interface {
 func NewClient(consulAddr string) (Client, error) {
 	reg := consul.NewRegistry(
 		registry.Addrs(consulAddr),
-		registry.Timeout(time.Second*10),
+		// registry.Timeout(time.Second*10),
 	)
 
 	sel := selector.NewSelector(
@@ -40,14 +38,10 @@ func NewClient(consulAddr string) (Client, error) {
 	)
 
 	cli := http.NewClient(
-		microClient.PoolSize(500),
-		microClient.PoolTTL(time.Minute),
 		microClient.Selector(sel),
 		microClient.Retries(3),
-		microClient.DialTimeout(time.Second*2),
-		microClient.RequestTimeout(time.Second*5),
-		microClient.Wrap(hystrix.NewClientWrapper()),
-		microClient.Wrap(opencensus.NewClientWrapper()),
+		//microClient.Wrap(hystrix.NewClientWrapper()),
+		//microClient.Wrap(opencensus.NewClientWrapper()),
 		microClient.ContentType("application/json"),
 	)
 

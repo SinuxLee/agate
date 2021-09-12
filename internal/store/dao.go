@@ -14,7 +14,7 @@ type Dao interface {
 	Hello(ctx context.Context, name string) (string, error)
 }
 
-func NewDao(redisCli *redis.Client, mysqlCli mysql.Client, mongoCli mongo.Client) Dao {
+func NewDao(redisCli redis.UniversalClient, mysqlCli mysql.Client, mongoCli mongo.Client) Dao {
 	return &daoImpl{
 		redisRepo: redisCli,
 		sqlRepo:   mysqlCli,
@@ -23,7 +23,7 @@ func NewDao(redisCli *redis.Client, mysqlCli mysql.Client, mongoCli mongo.Client
 }
 
 type daoImpl struct {
-	redisRepo *redis.Client
+	redisRepo redis.UniversalClient
 	sqlRepo   mysql.Client
 	mongoRepo mongo.Client
 }

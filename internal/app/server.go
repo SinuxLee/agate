@@ -65,7 +65,7 @@ type app struct {
 	webService web.Service
 	useCase    service.UseCase
 	conf       config.Config
-	redisCli   *redis.Client
+	redisCli   redis.UniversalClient
 	mysqlCli   mysql.Client
 	mongoCli   mongo.Client
 	dao        store.Dao

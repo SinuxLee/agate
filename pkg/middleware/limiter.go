@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	ginLimiter "github.com/julianshen/gin-limiter"
+	ginLimiter "github.com/sinuxlee/gin-limiter"
 )
 
 // NewRateLimiter ...
