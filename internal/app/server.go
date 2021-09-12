@@ -14,7 +14,8 @@ import (
 	"template/internal/store"
 	"template/pkg/infra/mongo"
 	"template/pkg/infra/mysql"
-	"template/pkg/infra/redis/client"
+
+	"github.com/go-redis/redis/v8"
 
 	"github.com/asim/go-micro/v3"
 	"github.com/asim/go-micro/v3/config"
@@ -64,7 +65,7 @@ type app struct {
 	webService web.Service
 	useCase    service.UseCase
 	conf       config.Config
-	redisCli   client.RedisClient
+	redisCli   *redis.Client
 	mysqlCli   mysql.Client
 	mongoCli   mongo.Client
 	dao        store.Dao

@@ -21,6 +21,7 @@ type Client interface {
 	FindOne(ctx context.Context, table string, finder interface{}, data interface{}) error
 	Find(ctx context.Context, table string, finder interface{}, data interface{}) error
 	UpdateOne(ctx context.Context, table string, filter interface{}, data interface{}) error
+	UpsertOne(ctx context.Context, table string, filter interface{}, data interface{}) error
 	MultiReplaceInsert(ctx context.Context, table string, filter []interface{}, data []interface{}) error
 	RunJavascript(ctx context.Context, script string) ([]interface{}, error)
 	Traverse(ctx context.Context, table string, finder interface{}, data interface{}, projection interface{}, limit int64, fun TraverseFunc) error
@@ -92,6 +93,17 @@ func (c *client) Find(ctx context.Context, table string, finder interface{}, dat
 func (c *client) UpdateOne(ctx context.Context, table string, filter interface{}, data interface{}) error {
 	collection := c.cli.Database(c.conf.Database).Collection(table)
 	_, err := collection.UpdateOne(ctx, filter, data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *client) UpsertOne(ctx context.Context, table string, filter interface{}, data interface{}) error {
+	collection := c.cli.Database(c.conf.Database).Collection(table)
+	opts := options.Update().SetUpsert(true)
+	_, err := collection.UpdateOne(ctx, filter, data, opts)
 	if err != nil {
 		return err
 	}
