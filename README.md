@@ -7,6 +7,9 @@ go install google.golang.org/protobuf/cmd/protoc-gen-go
 go get github.com/asim/go-micro/cmd/protoc-gen-micro/v3
 
 protoc --proto_path=. --micro_out=../ --go_out=../  *.proto
+
+go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 ```
 
 #### 优化方向

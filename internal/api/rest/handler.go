@@ -3,6 +3,7 @@ package rest
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"template/internal/api/rest/docs"
 	"template/internal/api/rest/internal"
 	"template/internal/service"
@@ -11,6 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/swaggo/gin-swagger/swaggerFiles"
+	ginPrometheus "github.com/zsais/go-gin-prometheus"
 )
 
 var _ Handler = (*restHandler)(nil)
@@ -19,10 +21,11 @@ type Handler interface {
 	RegisterHandler(engine *gin.Engine)
 }
 
-func NewRestHandler(uc service.UseCase, swaggerAddr string) Handler {
+func NewRestHandler(uc service.UseCase, swaggerAddr string, prom *ginPrometheus.Prometheus) Handler {
 	return &restHandler{
 		useCase:     uc,
 		swaggerHost: swaggerAddr,
+		ginProm:     prom,
 	}
 }
 
@@ -58,6 +61,7 @@ func NewRestHandler(uc service.UseCase, swaggerAddr string) Handler {
 type restHandler struct {
 	useCase     service.UseCase
 	swaggerHost string
+	ginProm     *ginPrometheus.Prometheus
 }
 
 // ResponseWithData ...
@@ -117,9 +121,28 @@ func (c *restHandler) healthCheck(engine *gin.Engine) {
 	})
 }
 
+func (c *restHandler) prometheus(engine *gin.Engine) {
+	paramSet := map[string]string{
+		"name": ":name",
+	}
+
+	c.ginProm.ReqCntURLLabelMappingFn = func(c *gin.Context) string {
+		url := c.Request.URL.Path
+		for _, param := range c.Params {
+			if value, exist := paramSet[param.Key]; exist {
+				url = strings.Replace(url, param.Value, value, 1)
+				break
+			}
+		}
+		return url
+	}
+	c.ginProm.Use(engine)
+}
+
 func (c *restHandler) RegisterHandler(engine *gin.Engine) {
 	c.healthCheck(engine)
 	c.swaggerDocs(engine)
+	c.prometheus(engine)
 
 	group1 := engine.Group("/svr/v1")
 	group1.GET("hello/:name", c.Hello)

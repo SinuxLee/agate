@@ -38,6 +38,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/juju/ratelimit"
 	"github.com/pkg/errors"
+	ginPrometheus "github.com/zsais/go-gin-prometheus"
 )
 
 // Option ...
@@ -331,8 +332,11 @@ func WebService() Option {
 		}
 		swaggerAddr := fmt.Sprintf("%v%v", ip, conf.Port)
 
+		// http prometheus
+		ginProm := ginPrometheus.NewPrometheus(serverName)
+
 		// 构建 web handler
-		rest.NewRestHandler(a.useCase, swaggerAddr).RegisterHandler(ginRouter)
+		rest.NewRestHandler(a.useCase, swaggerAddr, ginProm).RegisterHandler(ginRouter)
 
 		// 注册服务
 		consulAddr := a.conf.Get(consulAddrKey).String(consulAddrDef)

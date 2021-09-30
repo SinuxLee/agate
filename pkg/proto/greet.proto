@@ -3,6 +3,7 @@ package greeter;
 
 option go_package = "/proto";
 
+// https://www.jishuchi.com/read/gin-practice/3886
 service Greeter {
 	rpc Hello(HelloRequest) returns (HelloResponse) {}
 }
