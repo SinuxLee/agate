@@ -80,26 +80,14 @@ func webCli() {
 }
 
 func rpcCli() {
-	reg := consul.NewRegistry(
-		registry.Addrs(consulAddr),
-		registry.Timeout(time.Second*10),
-	)
-
-	sel := selector.NewSelector(
-		selectorReg.TTL(time.Hour*2),
-		selector.Registry(reg),
-	)
-
 	cli := client.NewClient(
-		client.PoolSize(500),
-		client.PoolTTL(time.Minute),
-		client.Selector(sel),
+		client.Selector(selector.NewSelector(
+			selector.Registry(consul.NewRegistry(
+				registry.Addrs(consulAddr),
+			)),
+		)),
 		client.Transport(grpc.NewTransport()),
 		client.Retries(3),
-		client.DialTimeout(time.Second*2),
-		client.RequestTimeout(time.Second*5),
-		client.Wrap(hystrix.NewClientWrapper()),
-		client.Wrap(opencensus.NewClientWrapper()),
 	)
 
 	// Use the generated client stub

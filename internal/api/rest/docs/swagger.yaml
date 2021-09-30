@@ -1,0 +1,78 @@
+basePath: /svr
+definitions:
+  internal.HelloRsp:
+    properties:
+      greet:
+        type: string
+    type: object
+  internal.Response:
+    properties:
+      code:
+        type: integer
+      data:
+        type: object
+      message:
+        type: string
+    type: object
+host: localhost:8086
+info:
+  contact:
+    email: sinuxlee@qq.com
+    name: sinuxlee
+    url: http://www.swagger.io/support
+  description: 项目结构概要描述
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: template
+  version: "1.0"
+paths:
+  /v1/hello/{name}:
+    get:
+      consumes:
+      - application/json
+      description: get greet by name
+      parameters:
+      - description: libz
+        in: path
+        name: name
+        required: true
+        type: string
+      - default: application/json
+        description: application/json
+        in: header
+        name: Content-Type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 响应体
+          schema:
+            allOf:
+            - $ref: '#/definitions/internal.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal.HelloRsp'
+              type: object
+      summary: 问候
+      tags:
+      - Hello
+schemes:
+- http
+- https
+securityDefinitions:
+  BasicAuth:
+    type: basic
+  TokenAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
+tags:
+- description: 各种问候
+  name: Hello
+x-extension-openapi:
+  example: value on a json format

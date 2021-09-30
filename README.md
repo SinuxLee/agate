@@ -21,3 +21,11 @@ protoc --proto_path=. --micro_out=../ --go_out=../  *.proto
 -   渐进的基础框架库 (infra) redis、mysql、mongodb、middleware、plugin、 msg protocol、http client、http server、grpc server、logger等
 -   灰度发布 请求染色
 
+#### swagger
+文档 https://github.com/swaggo/swag/blob/master/README_zh-CN.md  
+```shell
+go get -u github.com/swaggo/swag/cmd/swag
+swag init -g handler.go -d ./internal/api/rest -o ./internal/api/rest/docs --parseInternal  --generatedTime
+http://localhost:8086/swagger/index.html
+```
+

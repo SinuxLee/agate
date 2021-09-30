@@ -1,0 +1,121 @@
+{
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "项目结构概要描述",
+        "title": "template",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "sinuxlee",
+            "url": "http://www.swagger.io/support",
+            "email": "sinuxlee@qq.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8086",
+    "basePath": "/svr",
+    "paths": {
+        "/v1/hello/{name}": {
+            "get": {
+                "description": "get greet by name",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Hello"
+                ],
+                "summary": "问候",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "libz",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "application/json",
+                        "description": "application/json",
+                        "name": "Content-Type",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "响应体",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/internal.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/internal.HelloRsp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "internal.HelloRsp": {
+            "type": "object",
+            "properties": {
+                "greet": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal.Response": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "object"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BasicAuth": {
+            "type": "basic"
+        },
+        "TokenAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    },
+    "tags": [
+        {
+            "description": "各种问候",
+            "name": "Hello"
+        }
+    ],
+    "x-extension-openapi": {
+        "example": "value on a json format"
+    }
+}

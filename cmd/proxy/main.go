@@ -10,7 +10,6 @@ import (
 	"syscall"
 
 	"github.com/gin-contrib/pprof"
-
 	"github.com/gin-gonic/gin"
 
 	"template/internal/client/rpc"

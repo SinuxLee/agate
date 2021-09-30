@@ -324,8 +324,15 @@ func WebService() Option {
 		})
 		pprof.Register(ginRouter)
 
+		// 配置 swagger address
+		ip, err := a.intranetIP()
+		if err != nil {
+			return err
+		}
+		swaggerAddr := fmt.Sprintf("%v%v", ip, conf.Port)
+
 		// 构建 web handler
-		rest.NewRestHandler(a.useCase).RegisterHandler(ginRouter)
+		rest.NewRestHandler(a.useCase, swaggerAddr).RegisterHandler(ginRouter)
 
 		// 注册服务
 		consulAddr := a.conf.Get(consulAddrKey).String(consulAddrDef)
