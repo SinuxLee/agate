@@ -17,6 +17,7 @@ require (
 	github.com/asim/go-micro/v3 v3.5.2
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/docker/libkv v0.2.1
+	github.com/felixge/fgprof v0.9.1
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-contrib/pprof v1.3.0
 	github.com/gin-gonic/gin v1.7.2

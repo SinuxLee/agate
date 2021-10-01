@@ -32,6 +32,7 @@ import (
 	"github.com/docker/libkv"
 	libKVStore "github.com/docker/libkv/store"
 	libKVConsul "github.com/docker/libkv/store/consul"
+	"github.com/felixge/fgprof"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
@@ -323,6 +324,9 @@ func WebService() Option {
 		ginRouter.NoRoute(func(ctx *gin.Context) {
 			ctx.AbortWithStatus(http.StatusNotFound)
 		})
+
+		// analyze On-CPU as well as Off-CPU time
+		ginRouter.GET("/debug/fgprof", gin.WrapH(fgprof.Handler()))
 
 		// pprof
 		pprof.Register(ginRouter)
