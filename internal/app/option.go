@@ -128,7 +128,11 @@ func KVStore() Option {
 func RedisCli() Option {
 	return func(a *app) error {
 		conf := &redisConf{}
-		err := a.getConsulConf("redis", conf)
+		err := a.getConsulConf("redis", conf, &redisConf{
+			Mode:     "standalone",
+			Addr:     "127.0.0.1:6379",
+			Password: "",
+		})
 		if err != nil {
 			return err
 		}
@@ -169,7 +173,13 @@ func RedisCli() Option {
 func MySQLCli() Option {
 	return func(a *app) error {
 		conf := &mysqlConf{}
-		err := a.getConsulConf("mysql", conf)
+		err := a.getConsulConf("mysql", conf, &mysqlConf{
+			Host:     "127.0.0.1",
+			Port:     3306,
+			User:     "root",
+			Password: "Admin123",
+			Database: "db_player",
+		})
 		if err != nil {
 			return err
 		}
@@ -202,7 +212,12 @@ func MySQLCli() Option {
 func MongoCli() Option {
 	return func(a *app) (err error) {
 		conf := &mongodbConf{}
-		err = a.getConsulConf("mongodb", conf)
+		err = a.getConsulConf("mongodb", conf, &mongodbConf{
+			Host:     []string{"127.0.0.1:27017"},
+			User:     "",
+			Password: "",
+			Database: "ffa",
+		})
 		if err != nil {
 			return err
 		}
@@ -255,7 +270,9 @@ func UseCase() Option {
 func RpcService() Option {
 	return func(a *app) error {
 		conf := &rpcConf{}
-		err := a.getConsulConf("rpc", conf)
+		err := a.getConsulConf("rpc", conf, &rpcConf{
+			Port: ":18086",
+		})
 		if err != nil {
 			return err
 		}
@@ -298,7 +315,10 @@ func RpcService() Option {
 func WebService() Option {
 	return func(a *app) error {
 		conf := &webConf{}
-		err := a.getConsulConf("web", conf)
+		err := a.getConsulConf("web", conf, &webConf{
+			GinMode: "debug",
+			Port:    ":8086",
+		})
 		if err != nil {
 			return err
 		}

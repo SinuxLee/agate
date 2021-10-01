@@ -134,11 +134,24 @@ func (a *app) intranetIP() (string, error) {
 	return "", errors.New("valid local IP not found")
 }
 
-func (a *app) getConsulConf(key string, data interface{}) error {
+func (a *app) getConsulConf(key string, data interface{}, def interface{}) error {
 	consulKey := fmt.Sprintf("%v/%v", serverName, key)
 	kvPair, err := a.kvStore.Get(consulKey)
 	if err != nil {
-		return err
+		if err != libKVStore.ErrKeyNotFound || a.nodeID > 1 {
+			return err
+		}
+
+		// first startup
+		value, err := json.MarshalIndent(def, "", "\t")
+		if err != nil {
+			return err
+		}
+
+		_, kvPair, err = a.kvStore.AtomicPut(consulKey, value, nil, &libKVStore.WriteOptions{IsDir: false})
+		if err != nil {
+			return err
+		}
 	}
 
 	err = json.Unmarshal(kvPair.Value, data)
