@@ -323,6 +323,8 @@ func WebService() Option {
 		ginRouter.NoRoute(func(ctx *gin.Context) {
 			ctx.AbortWithStatus(http.StatusNotFound)
 		})
+
+		// pprof
 		pprof.Register(ginRouter)
 
 		// 配置 swagger address

@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"net"
@@ -15,12 +14,13 @@ import (
 	"template/pkg/infra/mongo"
 	"template/pkg/infra/mysql"
 
-	"github.com/go-redis/redis/v8"
-
 	"github.com/asim/go-micro/v3"
 	"github.com/asim/go-micro/v3/config"
 	"github.com/asim/go-micro/v3/web"
 	libKVStore "github.com/docker/libkv/store"
+	"github.com/go-redis/redis/v8"
+	"github.com/google/gops/agent"
+	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -74,6 +74,13 @@ type app struct {
 
 // Run ...
 func (a *app) Run(ch chan<- os.Signal) error {
+	if err := agent.Listen(agent.Options{
+		ConfigDir:       os.TempDir(),
+		ShutdownCleanup: true,
+	}); err != nil {
+		return err
+	}
+
 	g, _ := errgroup.WithContext(context.Background())
 	g.Go(func() error {
 		if a.rpcService == nil {
