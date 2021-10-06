@@ -14,7 +14,8 @@ require (
 	github.com/asim/go-micro/plugins/wrapper/breaker/hystrix/v3 v3.0.0-20210709115208-3fbf2c304fe0
 	github.com/asim/go-micro/plugins/wrapper/ratelimiter/ratelimit/v3 v3.0.0-20210709115208-3fbf2c304fe0
 	github.com/asim/go-micro/plugins/wrapper/trace/opencensus/v3 v3.0.0-20210709115208-3fbf2c304fe0
-	github.com/asim/go-micro/v3 v3.5.2
+	github.com/asim/go-micro/plugins/wrapper/validator/v3 v3.0.0-20211002121322-2ef523a7eb0c
+	github.com/asim/go-micro/v3 v3.6.1-0.20210831082736-088ccb50019c
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/docker/libkv v0.2.1
 	github.com/felixge/fgprof v0.9.1
@@ -31,6 +32,7 @@ require (
 	github.com/sinuxlee/gin-limiter v1.0.1
 	github.com/swaggo/gin-swagger v1.3.2
 	github.com/swaggo/swag v1.7.3
+	github.com/valyala/bytebufferpool v1.0.0
 	github.com/zsais/go-gin-prometheus v0.1.0
 	go.mongodb.org/mongo-driver v1.5.4
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c

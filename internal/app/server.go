@@ -134,8 +134,12 @@ func (a *app) intranetIP() (string, error) {
 	return "", errors.New("valid local IP not found")
 }
 
+func (a *app) makeConsulKey(key string) string {
+	return fmt.Sprintf("%v/%v", serverName, key)
+}
+
 func (a *app) getConsulConf(key string, data interface{}, def interface{}) error {
-	consulKey := fmt.Sprintf("%v/%v", serverName, key)
+	consulKey := a.makeConsulKey(key)
 	kvPair, err := a.kvStore.Get(consulKey)
 	if err != nil {
 		if err != libKVStore.ErrKeyNotFound || a.nodeID > 1 {
@@ -158,6 +162,21 @@ func (a *app) getConsulConf(key string, data interface{}, def interface{}) error
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (a *app) watchConsulConf(key string, observer ConfigObserver) error {
+	kvChan, err := a.kvStore.Watch(a.makeConsulKey(key), make(chan struct{}, 1))
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for kv := range kvChan {
+			observer.OnConfigChanged(key, kv.Value)
+		}
+	}()
 
 	return nil
 }

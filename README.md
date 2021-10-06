@@ -1,6 +1,13 @@
 ### 资料信息
 http://www.topgoer.com/  
 https://github.com/asim/go-micro/tree/master/cmd/protoc-gen-micro
+https://github.com/asim/go-micro/blob/master/examples/README.md
+https://github.com/asim/go-micro/blob/master/examples/greeter/README.md
+https://github.com/asim/go-micro/blob/master/cmd/gomu/README.md
+
+### mDNs
+mDNS 一般作用在一个局域网内的，有特定的 IP 地址，也就是 224.0.0.251,有特定的端口 5353,mDNS 的作用是实现局域网内的服务发现，查询，注册
+
 
 ```shell
 go install google.golang.org/protobuf/cmd/protoc-gen-go

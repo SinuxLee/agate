@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+
+	"github.com/rs/zerolog/log"
 )
 
 func (uc *useCaseImpl) Hello(ctx context.Context, name string) (string, error) {
@@ -10,5 +12,6 @@ func (uc *useCaseImpl) Hello(ctx context.Context, name string) (string, error) {
 		return "", err
 	}
 
+	log.Info().Str("beginTime", uc.conf.GetActiveBeginTime()).Send()
 	return data, nil
 }

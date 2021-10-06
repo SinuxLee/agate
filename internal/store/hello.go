@@ -7,11 +7,6 @@ type HellResult struct {
 }
 
 func (d *daoImpl) Hello(ctx context.Context, name string) (string, error) {
-	//ret := &HellResult{}
-	//err := d.sqlRepo.QuerySingle(ctx, &ret, `SELECT CONCAT("Hello ",?) as "data";`, name)
-	//if err != nil {
-	//	return "", err
-	//}
-
-	return "Hello " + name, nil
+	return d.redisRepo.Get(ctx, "libz").Result()
+	// return "Hello " + name, nil
 }

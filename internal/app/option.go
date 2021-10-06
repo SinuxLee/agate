@@ -2,8 +2,11 @@ package app
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"os"
+	"runtime"
+	"strings"
 	"time"
 
 	"template/internal/api/rest"
@@ -16,11 +19,12 @@ import (
 	"template/pkg/middleware"
 	"template/pkg/proto"
 
-	"github.com/asim/go-micro/plugins/logger/zerolog/v3"
+	zlog "github.com/asim/go-micro/plugins/logger/zerolog/v3"
 	"github.com/asim/go-micro/plugins/registry/consul/v3"
 	"github.com/asim/go-micro/plugins/transport/grpc/v3"
 	microLimiter "github.com/asim/go-micro/plugins/wrapper/ratelimiter/ratelimit/v3"
 	"github.com/asim/go-micro/plugins/wrapper/trace/opencensus/v3"
+	"github.com/asim/go-micro/plugins/wrapper/validator/v3"
 	"github.com/asim/go-micro/v3"
 	"github.com/asim/go-micro/v3/config"
 	"github.com/asim/go-micro/v3/config/source/env"
@@ -39,7 +43,13 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/juju/ratelimit"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	ginPrometheus "github.com/zsais/go-gin-prometheus"
+)
+
+const (
+	timeFormat = "2006-01-02 15:04:05.000"
 )
 
 // Option ...
@@ -98,14 +108,57 @@ func NodeID() Option {
 func Logger() Option {
 	return func(a *app) error {
 		lv := a.conf.Get(logLevelKey).String(logLevelDef)
-		level, err := logger.GetLevel(lv)
+		level, err := zerolog.ParseLevel(lv)
 		if err != nil {
-			level = logger.DebugLevel
+			level = zerolog.DebugLevel
 		}
 
-		logger.DefaultLogger = zerolog.NewLogger(logger.WithOutput(os.Stdout),
-			logger.WithLevel(level), logger.WithFields(map[string]interface{}{"nodeId": a.nodeID}))
-		logger.Info("Init logger successfully.")
+		zerolog.MessageFieldName = "msg"
+		zerolog.LevelFieldName = "lvl"
+		zerolog.TimeFieldFormat = timeFormat
+		//zerolog.InterfaceMarshalFunc = func(v interface{}) ([]byte, error) {
+		//	buffer := bytes.NewBuffer([]byte{})
+		//	en := json.NewEncoder(buffer)
+		//	en.SetEscapeHTML(false)
+		//	en.SetIndent("", "")
+		//	err := en.Encode(v)
+		//	return buffer.Bytes(), err
+		//}
+
+		simpleHook := zerolog.HookFunc(func(e *zerolog.Event, level zerolog.Level, msg string) {
+			if _, file, line, ok := runtime.Caller(4); ok {
+				// 取文件名
+				idx := strings.LastIndexByte(file, '/')
+				if idx == -1 {
+					e.Str("file", fmt.Sprintf("%s:%d", file, line))
+					return
+				}
+
+				// 取包名
+				idx = strings.LastIndexByte(file[:idx], '/')
+				if idx == -1 {
+					e.Str("file", fmt.Sprintf("%s:%d", file[:idx], line))
+					return
+				}
+
+				// 返回包名和文件名
+				e.Str("file", fmt.Sprintf("%s:%d", file[idx+1:], line))
+			}
+		})
+
+		ip, _ := a.intranetIP()
+		log.Logger = zerolog.New(os.Stdout).Level(level).Hook(simpleHook).With().Timestamp().
+			Fields(map[string]interface{}{"nodeId": a.nodeID}).IPAddr("ip", net.ParseIP(ip)).Logger()
+		log.Info().Msg("Init logger successfully.")
+
+		logger.DefaultLogger = zlog.NewLogger(
+			logger.WithOutput(os.Stdout),
+			logger.WithLevel(logger.DebugLevel),
+			zlog.WithTimeFormat(timeFormat),
+			zlog.WithProductionMode(),
+			zlog.WithHooks([]zerolog.Hook{simpleHook}),
+			logger.WithFields(map[string]interface{}{"nodeId": a.nodeID, "ip": ip}),
+		)
 		return nil
 	}
 }
@@ -164,7 +217,7 @@ func RedisCli() Option {
 			return errors.Errorf("create redis client failed, %v", conf.Info())
 		}
 
-		logger.Info("New Redis client successfully.")
+		log.Info().Msg("New Redis client successfully.")
 		return nil
 	}
 }
@@ -203,7 +256,7 @@ func MySQLCli() Option {
 			return errors.Errorf("create mysql client failed, %v", conf.Info())
 		}
 
-		logger.Info("New MySQL client successfully.")
+		log.Info().Msg("New MySQL client successfully.")
 		return nil
 	}
 }
@@ -240,7 +293,7 @@ func MongoCli() Option {
 			err = errors.Errorf("create mongo client failed, %v", conf.Info())
 		}
 
-		logger.Info("New Mongodb client successfully.")
+		log.Info().Msg("New Mongodb client successfully.")
 		return
 	}
 }
@@ -253,7 +306,7 @@ func Dao() Option {
 			return errors.New("create dao failed")
 		}
 
-		logger.Info("New dao successfully.")
+		log.Info().Msg("New dao successfully.")
 		return
 	}
 }
@@ -261,8 +314,16 @@ func Dao() Option {
 // UseCase ...
 func UseCase() Option {
 	return func(a *app) error {
-		a.useCase = service.NewUseCase(a.dao)
-		return nil
+		conf := &bizConf{}
+		err := a.getConsulConf(bizConfKey, conf, &bizConf{
+			ActiveBeginTime: "2021-10-06 00:00:00",
+		})
+		if err != nil {
+			return err
+		}
+
+		a.useCase = service.NewUseCase(a.dao, conf)
+		return a.watchConsulConf(bizConfKey, conf)
 	}
 }
 
@@ -294,9 +355,10 @@ func RpcService() Option {
 				server.Registry(consul.NewRegistry(
 					registry.Addrs(consulAddr),
 				)),
+				server.WrapHandler(validator.NewHandlerWrapper()),
 				server.WrapHandler(opencensus.NewHandlerWrapper()),
 				server.WrapHandler(microLimiter.NewHandlerWrapper(
-					ratelimit.NewBucketWithQuantum(time.Second, 10000, 10000), false),
+					ratelimit.NewBucketWithQuantum(time.Second, 10000, 10000), true),
 				),
 			)),
 		)
@@ -306,7 +368,7 @@ func RpcService() Option {
 			return err
 		}
 
-		logger.Info("New rpc service successfully.")
+		log.Info().Msg("New rpc service successfully.")
 		return nil
 	}
 }
@@ -384,7 +446,7 @@ func WebService() Option {
 			web.Handler(ginRouter),
 		)
 
-		logger.Info("New web service successfully.")
+		log.Info().Msg("New web service successfully.")
 		return nil
 	}
 }

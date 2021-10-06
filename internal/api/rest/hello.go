@@ -3,7 +3,6 @@ package rest
 import (
 	"template/internal/api/rest/internal"
 
-	"github.com/asim/go-micro/v3/logger"
 	"github.com/gin-gonic/gin"
 )
 
@@ -25,7 +24,5 @@ func (c *restHandler) Hello(ctx *gin.Context) {
 	}
 
 	rsp := &internal.HelloRsp{Greet: data}
-	logger.Infof("%+v", *rsp)
-
 	c.ResponseWithData(ctx, rsp)
 }

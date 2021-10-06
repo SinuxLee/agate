@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
 	"template/internal/api/rest/docs"
 	"template/internal/api/rest/internal"
 	"template/internal/service"
+	"template/pkg/middleware"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -145,6 +147,7 @@ func (c *restHandler) RegisterHandler(engine *gin.Engine) {
 	c.prometheus(engine)
 
 	group1 := engine.Group("/svr/v1")
+	group1.Use(middleware.Logger())
 	group1.GET("hello/:name", c.Hello)
-	group1.POST("hello", c.Hello)
+	group1.POST("hello/:name", c.Hello)
 }
