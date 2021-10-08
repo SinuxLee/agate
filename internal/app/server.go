@@ -32,12 +32,17 @@ const (
 
 	logLevelKey = "loglevel"
 	logLevelDef = "info"
+
+	printVersionKey = "version"
+	printVersionDef = false
 )
 
 func init() {
 	// NOTE: go-micro 只支持小写字母的选项
 	flag.String(consulAddrKey, consulAddrDef, "the consul address")
 	flag.String(logLevelKey, logLevelDef, "log level")
+	flag.Bool(printVersionKey, printVersionDef, "print program build version")
+
 	flag.Parse()
 }
 
@@ -74,6 +79,7 @@ type app struct {
 
 // Run ...
 func (a *app) Run(ch chan<- os.Signal) error {
+
 	if err := agent.Listen(agent.Options{
 		ConfigDir:       os.TempDir(),
 		ShutdownCleanup: true,

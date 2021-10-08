@@ -8,9 +8,12 @@ import (
 	"template/internal/app"
 )
 
+var version = "No Build Info"
+
 func main() {
 	srv, err := app.New(
 		app.Config(),
+		app.Version(version),
 		app.NodeID(),
 		app.Logger(),
 		app.KVStore(),

@@ -76,6 +76,18 @@ func Config() Option {
 	}
 }
 
+func Version(versionInfo string) Option {
+	return func(a *app) (err error) {
+		printVersion := a.conf.Get(printVersionKey).Bool(printVersionDef)
+		if printVersion {
+			_, _ = fmt.Fprintf(os.Stderr, "%v build info: %v\n", serverName, versionInfo)
+			os.Exit(0)
+		}
+
+		return nil
+	}
+}
+
 // NodeID ...
 func NodeID() Option {
 	return func(a *app) error {
