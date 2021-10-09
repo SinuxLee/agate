@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"template/pkg/infra/monitoring"
 	"time"
 
 	"template/internal/api/rest"
@@ -367,6 +368,7 @@ func RpcService() Option {
 				server.Registry(consul.NewRegistry(
 					registry.Addrs(consulAddr),
 				)),
+				server.WrapHandler(monitoring.GoMicroHandlerWrapper()),
 				server.WrapHandler(validator.NewHandlerWrapper()),
 				server.WrapHandler(opencensus.NewHandlerWrapper()),
 				server.WrapHandler(microLimiter.NewHandlerWrapper(
@@ -415,6 +417,7 @@ func WebService() Option {
 			ginRouter = gin.Default()
 		}
 		ginRouter.Use(cors.Default(), middleware.NewRateLimiter(time.Second, 10000))
+		ginRouter.Use(monitoring.GinHandler())
 		ginRouter.NoRoute(func(ctx *gin.Context) {
 			ctx.AbortWithStatus(http.StatusNotFound)
 		})
@@ -460,5 +463,22 @@ func WebService() Option {
 
 		log.Info().Msg("New web service successfully.")
 		return nil
+	}
+}
+
+func Monitor() Option {
+	return func(a *app) error {
+		conf := &monitoring.Config{}
+		err := a.getConsulConf("metrics", conf, &monitoring.Config{
+			Addr:       ":9100",
+			Path:       "metrics",
+			ServerName: serverName,
+		})
+		if err != nil {
+			return err
+		}
+
+		err = monitoring.Serve(conf)
+		return err
 	}
 }

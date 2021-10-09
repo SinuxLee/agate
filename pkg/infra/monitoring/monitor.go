@@ -9,9 +9,9 @@ import (
 )
 
 type Config struct {
-	Addr       string
-	Path       string
-	ServerName string
+	Addr       string `json:"addr"`
+	Path       string `json:"path"`
+	ServerName string `json:-`
 }
 
 var (

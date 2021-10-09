@@ -144,7 +144,7 @@ func (c *restHandler) prometheus(engine *gin.Engine) {
 func (c *restHandler) RegisterHandler(engine *gin.Engine) {
 	c.healthCheck(engine)
 	c.swaggerDocs(engine)
-	c.prometheus(engine)
+	//c.prometheus(engine)
 
 	group1 := engine.Group("/svr/v1")
 	group1.Use(middleware.Logger())
