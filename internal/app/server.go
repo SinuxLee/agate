@@ -24,9 +24,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const (
-	serverName = "svr"
-
+var (
+	serverName    = "svr"
 	consulAddrKey = "consul"
 	consulAddrDef = "127.0.0.1:8500"
 
@@ -39,9 +38,9 @@ const (
 
 func init() {
 	// NOTE: go-micro 只支持小写字母的选项
-	flag.String(consulAddrKey, consulAddrDef, "the consul address")
-	flag.String(logLevelKey, logLevelDef, "log level")
-	flag.Bool(printVersionKey, printVersionDef, "print program build version")
+	flag.StringVar(&consulAddrDef, consulAddrKey, "127.0.0.1:8500", "the consul address")
+	flag.StringVar(&logLevelDef, logLevelKey, "info", "log level")
+	flag.BoolVar(&printVersionDef, printVersionKey, false, "print program build version")
 
 	flag.Parse()
 }
