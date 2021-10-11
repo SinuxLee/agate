@@ -6,5 +6,7 @@ import (
 )
 
 func GoMicroHandlerWrapper() server.HandlerWrapper {
-	return microprometheus.NewHandlerWrapper()
+	return microprometheus.NewHandlerWrapper(func(opts *microprometheus.Options) {
+		opts.Name = defaultConf.ServerName
+	})
 }
