@@ -47,7 +47,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	//	ginPrometheus "github.com/zsais/go-gin-prometheus"
 )
 
 const (
@@ -437,11 +436,8 @@ func WebService() Option {
 		}
 		swaggerAddr := fmt.Sprintf("%v%v", ip, conf.Port)
 
-		// http prometheus
-		//ginProm := ginPrometheus.NewPrometheus(serverName)
-
 		// 构建 web handler
-		rest.NewRestHandler(a.useCase, swaggerAddr, nil).RegisterHandler(ginRouter)
+		rest.NewRestHandler(a.useCase, swaggerAddr).RegisterHandler(ginRouter)
 
 		// 注册服务
 		consulAddr := a.conf.Get(consulAddrKey).String(consulAddrDef)
