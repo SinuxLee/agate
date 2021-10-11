@@ -42,11 +42,12 @@ import (
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
+	"github.com/imdario/mergo"
 	"github.com/juju/ratelimit"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	ginPrometheus "github.com/zsais/go-gin-prometheus"
+	//	ginPrometheus "github.com/zsais/go-gin-prometheus"
 )
 
 const (
@@ -65,7 +66,7 @@ func Config() Option {
 
 		a.conf, err = config.NewConfig()
 		if err != nil {
-			return err
+			return errors.Wrap(err, "Config()")
 		}
 
 		err = a.conf.Load(flagSource, env.NewSource())
@@ -100,7 +101,7 @@ func NodeID() Option {
 		addr := a.conf.Get(consulAddrKey).String(consulAddrDef)
 		nodeNamed, err := nid.NewConsulNamed(addr)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "get consul addr: %s", consulAddrKey)
 		}
 
 		a.nodeID, err = nodeNamed.GetNodeID(&nid.NameHolder{
@@ -110,7 +111,7 @@ func NodeID() Option {
 		})
 
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "get nodeid: %s", consulAddrKey)
 		}
 
 		return nil
@@ -184,7 +185,7 @@ func KVStore() Option {
 		a.kvStore, err = libkv.NewStore(libKVStore.CONSUL, []string{addr},
 			&libKVStore.Config{ConnectionTimeout: 10 * time.Second})
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "KVStore: %s", consulAddrKey)
 		}
 		return nil
 	}
@@ -200,7 +201,7 @@ func RedisCli() Option {
 			Password: "",
 		})
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "RedisCli(): %s", "redis")
 		}
 
 		if conf.Mode == redisModeCluster {
@@ -247,7 +248,7 @@ func MySQLCli() Option {
 			Database: "db_player",
 		})
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "MySQLCli(): %s", "mysql")
 		}
 
 		a.mysqlCli, err = mysql.NewMysqlPoolWithTrace(&mysql.Config{
@@ -285,7 +286,7 @@ func MongoCli() Option {
 			Database: "ffa",
 		})
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "MongoCli(): %s", "mongodb")
 		}
 
 		a.mongoCli, err = mongo.NewClient(&mongo.Config{
@@ -328,13 +329,14 @@ func Dao() Option {
 func UseCase() Option {
 	return func(a *app) error {
 		conf := &bizConf{}
-		err := a.getConsulConf(bizConfKey, conf, &bizConf{
-			ActiveBeginTime: "2021-10-06 00:00:00",
-		})
-		if err != nil {
-			return err
+		defaultCfg := &bizConf{
+			ActiveBeginTime: time.Now().Format("2021-10-06 00:00:00"),
 		}
-
+		err := a.getConsulConf(bizConfKey, conf, defaultCfg)
+		if err != nil && err != libKVStore.ErrKeyNotFound {
+			return errors.Wrapf(err, "UseCase(): %s", bizConfKey)
+		}
+		mergo.Merge(conf, defaultCfg)
 		a.useCase = service.NewUseCase(a.dao, conf)
 		return a.watchConsulConf(bizConfKey, conf)
 	}
@@ -348,7 +350,7 @@ func RpcService() Option {
 			Port: ":18086",
 		})
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "RpcService(): %s", "rpc")
 		}
 
 		consulAddr := a.conf.Get(consulAddrKey).String(consulAddrDef)
@@ -379,7 +381,7 @@ func RpcService() Option {
 
 		err = proto.RegisterGreeterHandler(a.rpcService.Server(), rpc.NewRpcHandler(a.useCase))
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "RpcService(): %s", "rpc")
 		}
 
 		log.Info().Msg("New rpc service successfully.")
@@ -396,7 +398,7 @@ func WebService() Option {
 			Port:    ":8086",
 		})
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "WebService(): %s", "web")
 		}
 
 		// consul配置优先级高于环境变量
@@ -431,15 +433,15 @@ func WebService() Option {
 		// 配置 swagger address
 		ip, err := a.intranetIP()
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "WebService(): %s", "web")
 		}
 		swaggerAddr := fmt.Sprintf("%v%v", ip, conf.Port)
 
 		// http prometheus
-		ginProm := ginPrometheus.NewPrometheus(serverName)
+		//ginProm := ginPrometheus.NewPrometheus(serverName)
 
 		// 构建 web handler
-		rest.NewRestHandler(a.useCase, swaggerAddr, ginProm).RegisterHandler(ginRouter)
+		rest.NewRestHandler(a.useCase, swaggerAddr, nil).RegisterHandler(ginRouter)
 
 		// 注册服务
 		consulAddr := a.conf.Get(consulAddrKey).String(consulAddrDef)
@@ -469,16 +471,20 @@ func WebService() Option {
 func Monitor() Option {
 	return func(a *app) error {
 		conf := &monitoring.Config{}
-		err := a.getConsulConf("metrics", conf, &monitoring.Config{
+		defaultCfg := &monitoring.Config{
 			Addr:       ":9100",
-			Path:       "metrics",
+			Path:       "/metrics",
 			ServerName: serverName,
-		})
-		if err != nil {
-			return err
 		}
 
+		err := a.getConsulConf("metrics", conf, defaultCfg)
+
+		if err != nil && err != libKVStore.ErrKeyNotFound {
+			return errors.Wrapf(err, "Monitor(): %s", "metrics")
+		}
+
+		mergo.Merge(conf, defaultCfg)
 		err = monitoring.Serve(conf)
-		return err
+		return errors.Wrapf(err, "Monitor(): %s", "metrics")
 	}
 }
