@@ -128,15 +128,6 @@ func Logger() Option {
 		zerolog.MessageFieldName = "msg"
 		zerolog.LevelFieldName = "lvl"
 		zerolog.TimeFieldFormat = timeFormat
-		//zerolog.InterfaceMarshalFunc = func(v interface{}) ([]byte, error) {
-		//	buffer := bytes.NewBuffer([]byte{})
-		//	en := json.NewEncoder(buffer)
-		//	en.SetEscapeHTML(false)
-		//	en.SetIndent("", "")
-		//	err := en.Encode(v)
-		//	return buffer.Bytes(), err
-		//}
-
 		simpleHook := zerolog.HookFunc(func(e *zerolog.Event, level zerolog.Level, msg string) {
 			if _, file, line, ok := runtime.Caller(4); ok {
 				// 取文件名
@@ -430,13 +421,16 @@ func WebService() Option {
 		if err != nil {
 			return err
 		}
-		swaggerAddr := fmt.Sprintf("%v%v", ip, conf.Port)
+		swaggerAddr := fmt.Sprintf("%v%v", ip, conf.Port) // todo browser open swagger url
 
 		// http prometheus
 		ginProm := ginPrometheus.NewPrometheus(serverName)
 
 		// 构建 web handler
-		rest.NewRestHandler(a.useCase, swaggerAddr, ginProm).RegisterHandler(ginRouter)
+		err = rest.NewRestHandler(a.useCase, swaggerAddr, ginProm).RegisterHandler(ginRouter)
+		if err != nil {
+			return err
+		}
 
 		// 注册服务
 		consulAddr := a.conf.Get(consulAddrKey).String(consulAddrDef)
@@ -446,17 +440,21 @@ func WebService() Option {
 			web.Name(webName),
 			web.Id(webID),
 			web.Metadata(map[string]string{
-				"nodeId":      webID,
-				"serviceName": webName,
-				"type":        "web",
-				"protocol":    "http",
+				"NodeId":      webID,
+				"ServiceName": webName,
+				"Type":        "web",
+				"Protocol":    "http",
 			}),
 			web.Registry(consul.NewRegistry(
 				registry.Addrs(consulAddr),
 			)),
-			web.Address(conf.Port),
+			web.Address(conf.Port), // todo DEV 环境需要支持同一 IP 下启动多个进程，real port = port + nodeId
 			web.Handler(ginRouter),
 		)
+
+		go func() {
+
+		}()
 
 		log.Info().Msg("New web service successfully.")
 		return nil

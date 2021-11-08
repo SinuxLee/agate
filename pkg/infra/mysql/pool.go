@@ -166,7 +166,7 @@ func (c *client) UpdateNamed(_ context.Context, query string, arg interface{}) (
 }
 
 func (c *client) Exec(_ context.Context, query string, args ...interface{}) (sql.Result, error) {
-	rlt, err := c.db.DB.Exec(query, args...)
+	rlt, err := c.db.Exec(query, args...)
 	if err != nil {
 		return nil, err
 	}

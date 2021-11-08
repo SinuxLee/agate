@@ -18,10 +18,13 @@ type TraverseFunc func(data interface{}) error
 var _ Client = (*client)(nil)
 
 type Client interface {
-	FindOne(ctx context.Context, table string, finder interface{}, data interface{}) error
-	Find(ctx context.Context, table string, finder interface{}, data interface{}) error
+	FindOne(ctx context.Context, table string, filter interface{}, data interface{}) error
+	Find(ctx context.Context, table string, filter interface{}, data interface{}) error
 	UpdateOne(ctx context.Context, table string, filter interface{}, data interface{}) error
 	UpsertOne(ctx context.Context, table string, filter interface{}, data interface{}) error
+	DeleteOne(ctx context.Context, table string, filter interface{}) error
+	DeleteAll(ctx context.Context, table string, filter interface{}) (int64, error)
+
 	MultiReplaceInsert(ctx context.Context, table string, filter []interface{}, data []interface{}) error
 	RunJavascript(ctx context.Context, script string) ([]interface{}, error)
 	Traverse(ctx context.Context, table string, finder interface{}, data interface{}, projection interface{}, limit int64, fun TraverseFunc) error
@@ -75,19 +78,19 @@ type client struct {
 	conf *Config
 }
 
-func (c *client) FindOne(ctx context.Context, table string, finder interface{}, data interface{}) error {
+func (c *client) FindOne(ctx context.Context, table string, filter interface{}, data interface{}) error {
 	collection := c.cli.Database(c.conf.Database).Collection(table)
-	return collection.FindOne(ctx, finder).Decode(data)
+	return collection.FindOne(ctx, filter).Decode(data)
 }
 
-func (c *client) Find(ctx context.Context, table string, finder interface{}, data interface{}) error {
+func (c *client) Find(ctx context.Context, table string, filter interface{}, data interface{}) error {
 	collection := c.cli.Database(c.conf.Database).Collection(table)
-	cursor, err := collection.Find(ctx, finder)
+	cursor, err := collection.Find(ctx, filter)
 	if err != nil {
 		return err
 	}
 
-	return cursor.All(context.TODO(), data)
+	return cursor.All(ctx, data)
 }
 
 func (c *client) UpdateOne(ctx context.Context, table string, filter interface{}, data interface{}) error {
@@ -109,6 +112,26 @@ func (c *client) UpsertOne(ctx context.Context, table string, filter interface{}
 	}
 
 	return nil
+}
+
+func (c *client) DeleteOne(ctx context.Context, table string, filter interface{}) error {
+	collection := c.cli.Database(c.conf.Database).Collection(table)
+	_, err := collection.DeleteOne(ctx, filter)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *client) DeleteAll(ctx context.Context, table string, filter interface{}) (int64, error) {
+	collection := c.cli.Database(c.conf.Database).Collection(table)
+	result, err := collection.DeleteMany(ctx, filter)
+	if err != nil {
+		return 0, err
+	}
+
+	return result.DeletedCount, nil
 }
 
 func (c *client) Traverse(ctx context.Context, table string, finder interface{}, data interface{}, projection interface{}, limit int64, fun TraverseFunc) error {

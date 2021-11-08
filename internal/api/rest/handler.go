@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"template/internal/api/rest/docs"
 	"template/internal/api/rest/internal"
+	"template/internal/entity"
 	"template/internal/service"
 	"template/pkg/middleware"
 
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -20,7 +23,7 @@ import (
 var _ Handler = (*restHandler)(nil)
 
 type Handler interface {
-	RegisterHandler(engine *gin.Engine)
+	RegisterHandler(engine *gin.Engine) error
 }
 
 func NewRestHandler(uc service.UseCase, swaggerAddr string, prom *ginPrometheus.Prometheus) Handler {
@@ -141,13 +144,88 @@ func (c *restHandler) prometheus(engine *gin.Engine) {
 	c.ginProm.Use(engine)
 }
 
-func (c *restHandler) RegisterHandler(engine *gin.Engine) {
+func (c *restHandler) jwt(secret string) (*jwt.GinJWTMiddleware, error) {
+	const identityKey = "userName"
+	return jwt.New(&jwt.GinJWTMiddleware{
+		Realm:       "game",
+		Key:         []byte(secret),
+		Timeout:     time.Hour,
+		MaxRefresh:  time.Hour * 24,
+		IdentityKey: identityKey,
+		LoginResponse: func(ctx *gin.Context, code int, token string, expire time.Time) {
+			c.ResponseWithData(ctx, &internal.LoginRsp{
+				Token:    token,
+				ExpireIn: int(expire.Sub(time.Now()) / time.Second),
+			})
+		},
+		PayloadFunc: func(data interface{}) jwt.MapClaims {
+			if v, ok := data.(*entity.User); ok {
+				return jwt.MapClaims{
+					identityKey: v.UserName,
+				}
+			}
+			return jwt.MapClaims{}
+		},
+		IdentityHandler: func(c *gin.Context) interface{} {
+			claims := jwt.ExtractClaims(c)
+			return &entity.User{
+				UserName: claims[identityKey].(string),
+			}
+		},
+		Authenticator: func(c *gin.Context) (interface{}, error) {
+			req := &internal.LoginReq{}
+			if err := c.ShouldBind(req); err != nil {
+				return "", jwt.ErrMissingLoginValues
+			}
+			userID := req.UserName
+			password := req.Password
+
+			if (userID == "admin" && password == "admin") || (userID == "test" && password == "test") {
+				return &entity.User{
+					UserName: userID,
+				}, nil
+			}
+
+			return nil, jwt.ErrFailedAuthentication
+		},
+		Authorizator: func(data interface{}, c *gin.Context) bool {
+			if v, ok := data.(*entity.User); ok && v.UserName == "admin" {
+				return true
+			}
+
+			return false
+		},
+		Unauthorized: func(c *gin.Context, code int, message string) {
+			c.JSON(code, gin.H{
+				"code":    code,
+				"message": message,
+			})
+		},
+		TokenLookup:   "header: Authorization, query: token, cookie: jwt",
+		TokenHeadName: "Bearer",
+		TimeFunc:      time.Now,
+	})
+}
+
+func (c *restHandler) RegisterHandler(engine *gin.Engine) error {
 	c.healthCheck(engine)
 	c.swaggerDocs(engine)
 	c.prometheus(engine)
+	jwtMiddle, err := c.jwt("test")
+	if err != nil {
+		return err
+	}
 
 	group1 := engine.Group("/svr/v1")
 	group1.Use(middleware.Logger())
 	group1.GET("hello/:name", c.Hello)
 	group1.POST("hello/:name", c.Hello)
+	group1.POST("login", jwtMiddle.LoginHandler)
+	group1.GET("/refresh-token", jwtMiddle.RefreshHandler)
+	group1.Use(jwtMiddle.MiddlewareFunc())
+	{
+		group1.GET("/biz", c.Hello)
+	}
+
+	return nil
 }
