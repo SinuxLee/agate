@@ -3,7 +3,6 @@ module template
 go 1.14
 
 require (
-	contrib.go.opencensus.io/integrations/ocsql v0.1.7
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/asim/go-micro/plugins/client/http/v3 v3.0.0-20210726052521-c3107e6843e2
 	github.com/asim/go-micro/plugins/logger/zerolog/v3 v3.0.0-20210709115208-3fbf2c304fe0
@@ -26,6 +25,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.3
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/google/gops v0.3.20
+	github.com/hedemonde/go-gin-prometheus v0.1.2
 	github.com/imdario/mergo v0.3.12
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/juju/ratelimit v1.0.1
@@ -36,7 +36,6 @@ require (
 	github.com/swaggo/gin-swagger v1.3.2
 	github.com/swaggo/swag v1.7.3
 	github.com/valyala/bytebufferpool v1.0.0
-	github.com/zsais/go-gin-prometheus v0.1.0
 	go.mongodb.org/mongo-driver v1.5.4
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/protobuf v1.26.0

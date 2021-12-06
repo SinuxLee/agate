@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/zsais/go-gin-prometheus"
+	ginprometheus "github.com/hedemonde/go-gin-prometheus"
 )
 
 func GinHandler() gin.HandlerFunc {

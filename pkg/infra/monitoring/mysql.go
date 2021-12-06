@@ -3,8 +3,8 @@ package monitoring
 import (
 	"time"
 
+	ginprometheus "github.com/hedemonde/go-gin-prometheus"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/zsais/go-gin-prometheus"
 )
 
 var (
