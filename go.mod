@@ -4,7 +4,6 @@ go 1.14
 
 require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
-	github.com/appleboy/gin-jwt/v2 v2.6.4
 	github.com/asim/go-micro/plugins/client/http/v3 v3.0.0-20210726052521-c3107e6843e2
 	github.com/asim/go-micro/plugins/logger/zerolog/v3 v3.0.0-20210709115208-3fbf2c304fe0
 	github.com/asim/go-micro/plugins/registry/consul/v3 v3.0.0-20210709115208-3fbf2c304fe0

@@ -39,7 +39,7 @@ func Logger() gin.HandlerFunc {
 		c.Writer = rw
 		begin := time.Now()
 
-		body := make([]byte, 0, 0)
+		body := make([]byte, 0)
 		if c.Request.Body != nil {
 			body, _ = c.GetRawData()
 			_ = c.Request.Body.Close()

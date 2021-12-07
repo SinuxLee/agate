@@ -47,7 +47,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	ginPrometheus "github.com/zsais/go-gin-prometheus"
 )
 
 const (
@@ -337,7 +336,7 @@ func UseCase() Option {
 		if err != nil && err != libKVStore.ErrKeyNotFound {
 			return errors.Wrapf(err, "UseCase(): %s", bizConfKey)
 		}
-		mergo.Merge(conf, defaultCfg)
+		_ = mergo.Merge(conf, defaultCfg)
 		a.useCase = service.NewUseCase(a.dao, conf)
 		return a.watchConsulConf(bizConfKey, conf)
 	}
@@ -483,7 +482,7 @@ func Monitor() Option {
 			return errors.Wrapf(err, "Monitor(): %s", "metrics")
 		}
 
-		mergo.Merge(conf, defaultCfg)
+		_ = mergo.Merge(conf, defaultCfg)
 		err = monitoring.Serve(conf)
 		return errors.Wrapf(err, "Monitor(): %s", "metrics")
 	}

@@ -3,21 +3,16 @@ package rest
 import (
 	"fmt"
 	"net/http"
-	"strings"
-	"time"
 
 	"template/internal/api/rest/docs"
 	"template/internal/api/rest/internal"
-	"template/internal/entity"
 	"template/internal/service"
 	"template/pkg/middleware"
 
-	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/swaggo/gin-swagger/swaggerFiles"
-	ginPrometheus "github.com/zsais/go-gin-prometheus"
 )
 
 var _ Handler = (*restHandler)(nil)
@@ -26,7 +21,7 @@ type Handler interface {
 	RegisterHandler(engine *gin.Engine) error
 }
 
-func NewRestHandler(uc service.UseCase, swaggerAddr string, prom *ginPrometheus.Prometheus) Handler {
+func NewRestHandler(uc service.UseCase, swaggerAddr string) Handler {
 	return &restHandler{
 		useCase:     uc,
 		swaggerHost: swaggerAddr,
@@ -124,7 +119,7 @@ func (c *restHandler) healthCheck(engine *gin.Engine) {
 	})
 }
 
-func (c *restHandler) RegisterHandler(engine *gin.Engine) {
+func (c *restHandler) RegisterHandler(engine *gin.Engine) error {
 	c.healthCheck(engine)
 	c.swaggerDocs(engine)
 
@@ -132,4 +127,6 @@ func (c *restHandler) RegisterHandler(engine *gin.Engine) {
 	group1.Use(middleware.Logger())
 	group1.GET("hello/:name", c.Hello)
 	group1.POST("hello/:name", c.Hello)
+
+	return nil
 }

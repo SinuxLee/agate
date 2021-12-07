@@ -11,7 +11,7 @@ import (
 type Config struct {
 	Addr       string `json:"addr"`
 	Path       string `json:"path"`
-	ServerName string `json:-`
+	ServerName string `json:"-"`
 }
 
 var (
@@ -37,7 +37,7 @@ func Serve(conf *Config) error {
 	http.Handle(defaultConf.Path, promhttp.Handler())
 
 	go func() {
-		http.ListenAndServe(defaultConf.Addr, nil)
+		_ = http.ListenAndServe(defaultConf.Addr, nil)
 	}()
 
 	return nil
