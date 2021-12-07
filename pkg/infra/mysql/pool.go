@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"contrib.go.opencensus.io/integrations/ocsql"
+	"template/pkg/infra/monitoring"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -67,21 +68,7 @@ type Client interface {
 
 // NewMysqlPoolWithTrace 构建带trace的sqlpool
 func NewMysqlPoolWithTrace(cfg *Config) (Client, error) {
-	// Register our ocsql wrapper for the provided mysql driver.
-	driverName, err := ocsql.Register("mysql", ocsql.WithOptions(ocsql.TraceOptions{
-		AllowRoot:    true,
-		Ping:         false,
-		RowsNext:     false,
-		RowsClose:    false,
-		RowsAffected: false,
-		LastInsertID: false,
-		Query:        true,
-		QueryParams:  true,
-	}))
-	if err != nil {
-		return nil, err
-	}
-	db, err := sql.Open(driverName, cfg.getSource())
+	db, err := sql.Open("mysql", cfg.getSource())
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +83,6 @@ func NewMysqlPoolWithTrace(cfg *Config) (Client, error) {
 	// record DB connection pool statistics
 	// dbStatsCloser := ocsql.RecordStats(db, 5*time.Second)
 	// defer dbStatsCloser() TODO
-	ocsql.RecordStats(db, 5*time.Second)
 
 	pool.SetConnMaxLifetime(time.Hour * 4)
 	pool.SetMaxOpenConns(cfg.MaxConn)
@@ -109,16 +95,44 @@ type client struct {
 	db *sqlx.DB
 }
 
+func (c *client) get(dest interface{}, query string, args ...interface{}) error {
+	statHandler := monitoring.GetRecordMysqlCallStatsHandler("Get", "")
+	err := c.db.Get(dest, query, args)
+	statHandler(err)
+	return err
+}
+
+func (c *client) _select(dest interface{}, query string, args ...interface{}) error {
+	statHandler := monitoring.GetRecordMysqlCallStatsHandler("Get", "")
+	err := c.db.Select(dest, query, args...)
+	statHandler(err)
+	return err
+}
+
+func (c *client) exec(query string, args ...interface{}) (sql.Result, error) {
+	statHandler := monitoring.GetRecordMysqlCallStatsHandler("Get", "")
+	result, err := c.db.Exec(query, args...)
+	statHandler(err)
+	return result, err
+}
+
+func (c *client) namedExec(query string, arg interface{}) (sql.Result, error) {
+	statHandler := monitoring.GetRecordMysqlCallStatsHandler("Get", "")
+	result, err := c.db.NamedExec(query, arg)
+	statHandler(err)
+	return result, err
+}
+
 func (c *client) QuerySingle(_ context.Context, dest interface{}, query string, args ...interface{}) error {
-	return c.db.Get(dest, query, args...)
+	return c.get(dest, query, args...)
 }
 
 func (c *client) QueryMulti(_ context.Context, dest interface{}, query string, args ...interface{}) error {
-	return c.db.Select(dest, query, args...)
+	return c._select(dest, query, args...)
 }
 
 func (c *client) Insert(_ context.Context, query string, args ...interface{}) (int64, error) {
-	result, err := c.db.Exec(query, args...)
+	result, err := c.exec(query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -130,7 +144,7 @@ func (c *client) Insert(_ context.Context, query string, args ...interface{}) (i
 }
 
 func (c *client) InsertNamed(_ context.Context, query string, arg interface{}) (int64, error) {
-	result, err := c.db.NamedExec(query, arg)
+	result, err := c.namedExec(query, arg)
 	if err != nil {
 		return 0, err
 	}
@@ -142,7 +156,7 @@ func (c *client) InsertNamed(_ context.Context, query string, arg interface{}) (
 }
 
 func (c *client) Update(_ context.Context, query string, args ...interface{}) (int64, error) {
-	result, err := c.db.Exec(query, args...)
+	result, err := c.exec(query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -154,7 +168,7 @@ func (c *client) Update(_ context.Context, query string, args ...interface{}) (i
 }
 
 func (c *client) UpdateNamed(_ context.Context, query string, arg interface{}) (int64, error) {
-	result, err := c.db.NamedExec(query, arg)
+	result, err := c.namedExec(query, arg)
 	if err != nil {
 		return 0, err
 	}
@@ -166,7 +180,7 @@ func (c *client) UpdateNamed(_ context.Context, query string, arg interface{}) (
 }
 
 func (c *client) Exec(_ context.Context, query string, args ...interface{}) (sql.Result, error) {
-	rlt, err := c.db.Exec(query, args...)
+	rlt, err := c.exec(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +201,7 @@ func (c *client) ReplaceIntoMulti(_ context.Context, query string, args ...inter
 		return nil, err
 	}
 
-	result, err := c.db.Exec(multiQuery, multiArgs...)
+	result, err := c.exec(multiQuery, multiArgs...)
 	if err != nil {
 		return nil, err
 	}

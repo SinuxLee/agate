@@ -17,6 +17,7 @@ func main() {
 		app.NodeID(),
 		app.Logger(),
 		app.KVStore(),
+		app.Monitor(),
 		app.RedisCli(),
 		app.MySQLCli(),
 		app.MongoCli(),
