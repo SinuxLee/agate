@@ -55,7 +55,7 @@ const (
 // Option ...
 type Option func(*app) error
 
-// Config ..
+// Config ...
 func Config() Option {
 	return func(a *app) (err error) {
 		flagSource := flag.NewSource(
@@ -76,6 +76,7 @@ func Config() Option {
 	}
 }
 
+// Version ...
 func Version(versionInfo string) Option {
 	return func(a *app) (err error) {
 		printVersion := a.conf.Get(printVersionKey).Bool(printVersionDef)

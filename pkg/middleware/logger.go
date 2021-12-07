@@ -16,12 +16,18 @@ type responseWriter struct {
 }
 
 func (w responseWriter) Write(b []byte) (int, error) {
-	_, _ = w.body.Write(b)
+	_, err := w.body.Write(b)
+	if err != nil {
+		return 0, err
+	}
 	return w.ResponseWriter.Write(b)
 }
 
 func (w responseWriter) WriteString(s string) (int, error) {
-	_, _ = w.body.WriteString(s)
+	_, err := w.body.WriteString(s)
+	if err != nil {
+		return 0, err
+	}
 	return w.ResponseWriter.WriteString(s)
 }
 
@@ -31,15 +37,18 @@ func Logger() gin.HandlerFunc {
 		defer bytebufferpool.Put(rw.body)
 
 		c.Writer = rw
-		body, _ := c.GetRawData()
-		_ = c.Request.Body.Close()
-		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 		begin := time.Now()
+
+		body := make([]byte, 0, 0)
+		if c.Request.Body != nil {
+			body, _ = c.GetRawData()
+			_ = c.Request.Body.Close()
+			c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+		}
 
 		c.Next()
 
 		log.Info().Str("remote", c.Request.RemoteAddr).
-			// Str("referer", c.Request.Referer()).
 			Str("method", c.Request.Method).
 			Str("uri", c.Request.URL.String()).
 			Interface("header", c.Request.Header).
