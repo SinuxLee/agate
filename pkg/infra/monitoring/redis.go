@@ -27,7 +27,7 @@ func GetRecordRedisCallStatsHandler(command, instance string) func(err error) {
 		if err != nil {
 			status = "ERROR"
 		}
-		mysqlHistogram.WithLabelValues(command, instance, status).Observe(elapsed)
-		mysqlOpsCounter.WithLabelValues(command, instance, status).Inc()
+		redisHistogram.WithLabelValues(command, instance, status).Observe(elapsed)
+		redisOpsCounter.WithLabelValues(command, instance, status).Inc()
 	}
 }
