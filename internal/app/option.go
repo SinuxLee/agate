@@ -104,6 +104,12 @@ func NodeID() Option {
 			return errors.Wrapf(err, "get consul addr: %s", consulAddrKey)
 		}
 
+		serviceKey := serverName
+		keyPrefix := a.conf.Get(consulPrefixKey).String(consulPrefixDef)
+		if keyPrefix != "" {
+			serviceKey = fmt.Sprintf("%v/%v", keyPrefix, serviceKey)
+		}
+
 		a.nodeID, err = nodeNamed.GetNodeID(&nid.NameHolder{
 			LocalPath:  os.Args[0],
 			LocalIP:    ip,

@@ -34,12 +34,16 @@ var (
 
 	printVersionKey = "version"
 	printVersionDef = false
+
+	consulPrefixKey = "prefix"
+	consulPrefixDef = ""
 )
 
 func init() {
 	// NOTE: go-micro 只支持小写字母的选项
 	flag.StringVar(&consulAddrDef, consulAddrKey, "127.0.0.1:8500", "the consul address")
 	flag.StringVar(&logLevelDef, logLevelKey, "info", "log level")
+	flag.String(consulPrefixKey, consulPrefixDef, "consul key prefix")
 	flag.BoolVar(&printVersionDef, printVersionKey, false, "print program build version")
 
 	flag.Parse()
@@ -140,7 +144,11 @@ func (a *app) intranetIP() (string, error) {
 }
 
 func (a *app) makeConsulKey(key string) string {
-	return fmt.Sprintf("%v/%v", serverName, key)
+	keyPrefix := a.conf.Get(consulPrefixKey).String(consulPrefixDef)
+	if keyPrefix == "" {
+		return fmt.Sprintf("%v/%v", serverName, key)
+	}
+	return fmt.Sprintf("%v/%v/%v", keyPrefix, serverName, key)
 }
 
 func (a *app) getConsulConf(key string, data interface{}, def interface{}) error {
