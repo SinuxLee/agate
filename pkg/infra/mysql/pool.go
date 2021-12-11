@@ -80,10 +80,6 @@ func NewMysqlPoolWithTrace(cfg *Config) (Client, error) {
 		return nil, err
 	}
 
-	// record DB connection pool statistics
-	// dbStatsCloser := ocsql.RecordStats(db, 5*time.Second)
-	// defer dbStatsCloser() TODO
-
 	pool.SetConnMaxLifetime(time.Hour * 4)
 	pool.SetMaxOpenConns(cfg.MaxConn)
 	pool.SetMaxIdleConns(cfg.IdleConn)
@@ -137,7 +133,7 @@ func (c *client) Insert(_ context.Context, query string, args ...interface{}) (i
 		return 0, err
 	}
 	lastInsertId, err := result.LastInsertId()
-	if err != nil { //TODO TO LOG
+	if err != nil {
 		return 0, err
 	}
 	return lastInsertId, nil
@@ -149,7 +145,7 @@ func (c *client) InsertNamed(_ context.Context, query string, arg interface{}) (
 		return 0, err
 	}
 	lastInsertId, err := result.LastInsertId()
-	if err != nil { //TODO TO LOG
+	if err != nil {
 		return 0, err
 	}
 	return lastInsertId, nil
@@ -161,7 +157,7 @@ func (c *client) Update(_ context.Context, query string, args ...interface{}) (i
 		return 0, err
 	}
 	rowAffects, err := result.RowsAffected()
-	if err != nil { //TODO TO LOG
+	if err != nil {
 		return 0, err
 	}
 	return rowAffects, nil
@@ -173,7 +169,7 @@ func (c *client) UpdateNamed(_ context.Context, query string, arg interface{}) (
 		return 0, err
 	}
 	rowAffects, err := result.RowsAffected()
-	if err != nil { //TODO TO LOG
+	if err != nil {
 		return 0, err
 	}
 	return rowAffects, nil
