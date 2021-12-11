@@ -33,7 +33,7 @@ func Serve(conf *Config) error {
 
 	initMysql()
 	initRedis()
-	//处理监听问题
+	// 处理监听问题
 	http.Handle(defaultConf.Path, promhttp.Handler())
 
 	go func() {

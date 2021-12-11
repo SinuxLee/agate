@@ -15,7 +15,7 @@ import (
 
 var _ Client = (*client)(nil)
 
-//Config mysql配置信息
+// Config mysql配置信息
 type Config struct {
 	Host        string `json:"host"`
 	Port        int    `json:"port"`
@@ -91,44 +91,26 @@ type client struct {
 	db *sqlx.DB
 }
 
-func (c *client) get(dest interface{}, query string, args ...interface{}) error {
-	statHandler := monitoring.GetRecordMysqlCallStatsHandler("Get", "")
-	err := c.db.Get(dest, query, args)
+func (c *client) QuerySingle(ctx context.Context, dest interface{}, query string, args ...interface{}) error {
+	statHandler := monitoring.GetRecordMysqlCallStatsHandler("QuerySingle", "")
+	err := c.db.GetContext(ctx, dest, query, args)
+	statHandler(err)
+
+	return err
+}
+
+func (c *client) QueryMulti(ctx context.Context, dest interface{}, query string, args ...interface{}) error {
+	statHandler := monitoring.GetRecordMysqlCallStatsHandler("QueryMulti", "")
+	err := c.db.SelectContext(ctx, dest, query, args...)
 	statHandler(err)
 	return err
 }
 
-func (c *client) _select(dest interface{}, query string, args ...interface{}) error {
-	statHandler := monitoring.GetRecordMysqlCallStatsHandler("Get", "")
-	err := c.db.Select(dest, query, args...)
+func (c *client) Insert(ctx context.Context, query string, args ...interface{}) (int64, error) {
+	statHandler := monitoring.GetRecordMysqlCallStatsHandler("Insert", "")
+	result, err := c.db.ExecContext(ctx, query, args...)
 	statHandler(err)
-	return err
-}
 
-func (c *client) exec(query string, args ...interface{}) (sql.Result, error) {
-	statHandler := monitoring.GetRecordMysqlCallStatsHandler("Get", "")
-	result, err := c.db.Exec(query, args...)
-	statHandler(err)
-	return result, err
-}
-
-func (c *client) namedExec(query string, arg interface{}) (sql.Result, error) {
-	statHandler := monitoring.GetRecordMysqlCallStatsHandler("Get", "")
-	result, err := c.db.NamedExec(query, arg)
-	statHandler(err)
-	return result, err
-}
-
-func (c *client) QuerySingle(_ context.Context, dest interface{}, query string, args ...interface{}) error {
-	return c.get(dest, query, args...)
-}
-
-func (c *client) QueryMulti(_ context.Context, dest interface{}, query string, args ...interface{}) error {
-	return c._select(dest, query, args...)
-}
-
-func (c *client) Insert(_ context.Context, query string, args ...interface{}) (int64, error) {
-	result, err := c.exec(query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -139,8 +121,11 @@ func (c *client) Insert(_ context.Context, query string, args ...interface{}) (i
 	return lastInsertId, nil
 }
 
-func (c *client) InsertNamed(_ context.Context, query string, arg interface{}) (int64, error) {
-	result, err := c.namedExec(query, arg)
+func (c *client) InsertNamed(ctx context.Context, query string, arg interface{}) (int64, error) {
+	statHandler := monitoring.GetRecordMysqlCallStatsHandler("InsertNamed", "")
+	result, err := c.db.NamedExecContext(ctx, query, arg)
+	statHandler(err)
+
 	if err != nil {
 		return 0, err
 	}
@@ -151,8 +136,11 @@ func (c *client) InsertNamed(_ context.Context, query string, arg interface{}) (
 	return lastInsertId, nil
 }
 
-func (c *client) Update(_ context.Context, query string, args ...interface{}) (int64, error) {
-	result, err := c.exec(query, args...)
+func (c *client) Update(ctx context.Context, query string, args ...interface{}) (int64, error) {
+	statHandler := monitoring.GetRecordMysqlCallStatsHandler("Update", "")
+	result, err := c.db.ExecContext(ctx, query, args...)
+	statHandler(err)
+
 	if err != nil {
 		return 0, err
 	}
@@ -163,8 +151,11 @@ func (c *client) Update(_ context.Context, query string, args ...interface{}) (i
 	return rowAffects, nil
 }
 
-func (c *client) UpdateNamed(_ context.Context, query string, arg interface{}) (int64, error) {
-	result, err := c.namedExec(query, arg)
+func (c *client) UpdateNamed(ctx context.Context, query string, arg interface{}) (int64, error) {
+	statHandler := monitoring.GetRecordMysqlCallStatsHandler("UpdateNamed", "")
+	result, err := c.db.NamedExecContext(ctx, query, arg)
+	statHandler(err)
+
 	if err != nil {
 		return 0, err
 	}
@@ -175,12 +166,11 @@ func (c *client) UpdateNamed(_ context.Context, query string, arg interface{}) (
 	return rowAffects, nil
 }
 
-func (c *client) Exec(_ context.Context, query string, args ...interface{}) (sql.Result, error) {
-	rlt, err := c.exec(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	return rlt, err
+func (c *client) Exec(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	statHandler := monitoring.GetRecordMysqlCallStatsHandler("Exec", "")
+	result, err := c.db.ExecContext(ctx, query, args...)
+	statHandler(err)
+	return result, err
 }
 
 func (c *client) IsNoRowsError(err error) bool {
@@ -191,13 +181,16 @@ func (c *client) GetOriginalSource() interface{} {
 	return c.db
 }
 
-func (c *client) ReplaceIntoMulti(_ context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (c *client) ReplaceIntoMulti(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
 	multiQuery, multiArgs, err := sqlx.In(query, args...)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := c.exec(multiQuery, multiArgs...)
+	statHandler := monitoring.GetRecordMysqlCallStatsHandler("ReplaceIntoMulti", "")
+	result, err := c.db.ExecContext(ctx, multiQuery, multiArgs...)
+	statHandler(err)
+
 	if err != nil {
 		return nil, err
 	}
