@@ -353,10 +353,15 @@ func RpcService() Option {
 	return func(a *app) error {
 		conf := &rpcConf{}
 		err := a.getConsulConf("rpc", conf, &rpcConf{
-			Port: ":18086",
+			RpcMode: "debug",
+			Port:    18086,
 		})
 		if err != nil {
 			return errors.Wrap(err, "option RpcService")
+		}
+
+		if conf.RpcMode == "test" {
+			conf.Port = conf.Port + uint16(a.nodeID-1)
 		}
 
 		consulAddr := a.conf.Get(consulAddrKey).String(consulAddrDef)
@@ -372,7 +377,7 @@ func RpcService() Option {
 					"serviceName": srvName,
 					"type":        "rpc",
 				}),
-				server.Address(conf.Port),
+				server.Address(fmt.Sprintf(":%v", conf.Port)),
 				server.Registry(consul.NewRegistry(
 					registry.Addrs(consulAddr),
 				)),
@@ -401,7 +406,7 @@ func WebService() Option {
 		conf := &webConf{}
 		err := a.getConsulConf("web", conf, &webConf{
 			GinMode: "debug",
-			Port:    ":8086",
+			Port:    8086,
 		})
 		if err != nil {
 			return errors.Wrap(err, "option WebService")
@@ -438,14 +443,17 @@ func WebService() Option {
 		// 配置 swagger address
 		ip, err := a.intranetIP()
 		if err != nil {
-			return errors.Wrapf(err, "WebService(): %s", "web")
+			return errors.Wrap(err, "option WebService")
 		}
-		swaggerAddr := fmt.Sprintf("%v%v", ip, conf.Port)
+		if ginMode == gin.TestMode {
+			conf.Port = conf.Port + uint16(a.nodeID-1)
+		}
+		swaggerAddr := fmt.Sprintf("%v:%v", ip, conf.Port)
 
 		// 构建 web handler
 		err = rest.NewRestHandler(a.useCase, swaggerAddr).RegisterHandler(ginRouter)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "option WebService")
 		}
 		// 注册服务
 		consulAddr := a.conf.Get(consulAddrKey).String(consulAddrDef)
@@ -463,7 +471,7 @@ func WebService() Option {
 			web.Registry(consul.NewRegistry(
 				registry.Addrs(consulAddr),
 			)),
-			web.Address(conf.Port),
+			web.Address(fmt.Sprintf(":%v", conf.Port)),
 			web.Handler(ginRouter),
 		)
 

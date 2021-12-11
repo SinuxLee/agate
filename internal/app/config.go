@@ -57,9 +57,10 @@ func (m *mongodbConf) Info() string {
 
 type webConf struct {
 	GinMode string `json:"ginMode"`
-	Port    string `json:"port"`
+	Port    uint16 `json:"port"`
 }
 
 type rpcConf struct {
-	Port string `json:"port"`
+	RpcMode string `json:"rpcMode"`
+	Port    uint16 `json:"port"`
 }
