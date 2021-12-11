@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/rs/zerolog/log"
 )
 
@@ -12,6 +13,11 @@ func (uc *useCaseImpl) Hello(ctx context.Context, name string) (string, error) {
 		return "", err
 	}
 
-	log.Info().Str("beginTime", uc.conf.GetActiveBeginTime()).Send()
+	log.Info().Str("thirdParty", uc.conf.GetThirdParty()).Send()
+
+	if rsp, err := resty.New().SetHostURL(uc.conf.GetThirdParty()).R().Get("/anything/haha"); err == nil && rsp.IsSuccess() {
+		log.Info().Str("body", rsp.String()).Msg("response")
+	}
+
 	return data, nil
 }

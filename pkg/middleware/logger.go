@@ -3,6 +3,8 @@ package middleware
 import (
 	"bytes"
 	"io/ioutil"
+	"net/http"
+	"runtime"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -33,6 +35,17 @@ func (w responseWriter) WriteString(s string) (int, error) {
 
 func Logger() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		strURI := c.Request.URL.String()
+		defer func(path string) {
+			if err := recover(); err != nil {
+				buf := make([]byte, 4096)
+				n := runtime.Stack(buf, false)
+				log.Error().Interface("panic", err).Str("stack", string(buf[:n])).
+					Str("path", path).Msg("http panic")
+				c.JSON(http.StatusOK, gin.H{"code": -1, "message": "panic error"})
+			}
+		}(strURI)
+
 		rw := &responseWriter{body: bytebufferpool.Get(), ResponseWriter: c.Writer}
 		defer bytebufferpool.Put(rw.body)
 
@@ -50,7 +63,7 @@ func Logger() gin.HandlerFunc {
 
 		log.Info().Str("remote", c.Request.RemoteAddr).
 			Str("method", c.Request.Method).
-			Str("uri", c.Request.URL.String()).
+			Str("uri", strURI).
 			Interface("header", c.Request.Header).
 			Interface("param", c.Params).
 			RawJSON("body", body).

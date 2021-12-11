@@ -24,7 +24,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var (
+const (
 	serverName    = "svr"
 	consulAddrKey = "consul"
 	consulAddrDef = "127.0.0.1:8500"
@@ -41,10 +41,10 @@ var (
 
 func init() {
 	// NOTE: go-micro 只支持小写字母的选项
-	flag.StringVar(&consulAddrDef, consulAddrKey, "127.0.0.1:8500", "the consul address")
-	flag.StringVar(&logLevelDef, logLevelKey, "info", "log level")
+	flag.String(consulAddrKey, consulAddrDef, "the consul address")
+	flag.String(logLevelKey, logLevelDef, "log level")
 	flag.String(consulPrefixKey, consulPrefixDef, "consul key prefix")
-	flag.BoolVar(&printVersionDef, printVersionKey, false, "print program build version")
+	flag.Bool(printVersionKey, printVersionDef, "print program build version")
 
 	flag.Parse()
 }
@@ -155,7 +155,7 @@ func (a *app) getConsulConf(key string, data interface{}, def interface{}) error
 	consulKey := a.makeConsulKey(key)
 	kvPair, err := a.kvStore.Get(consulKey)
 	if err != nil {
-		if err != libKVStore.ErrKeyNotFound || a.nodeID > 1 {
+		if err != libKVStore.ErrKeyNotFound {
 			return err
 		}
 
@@ -187,7 +187,7 @@ func (a *app) watchConsulConf(key string, observer ConfigObserver) error {
 
 	go func() {
 		for kv := range kvChan {
-			observer.OnConfigChanged(key, kv.Value)
+			_ = observer.OnConfigChanged(key, kv.Value)
 		}
 	}()
 

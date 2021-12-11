@@ -12,6 +12,7 @@ import (
 
 	"template/internal/api/rest"
 	"template/internal/api/rpc"
+	innerConfig "template/internal/config"
 	"template/internal/service"
 	"template/internal/store"
 	"template/pkg/infra/mongo"
@@ -133,17 +134,10 @@ func Logger() Option {
 			level = zerolog.DebugLevel
 		}
 
+		zerolog.TimestampFieldName = "ts"
 		zerolog.MessageFieldName = "msg"
 		zerolog.LevelFieldName = "lvl"
 		zerolog.TimeFieldFormat = timeFormat
-		//zerolog.InterfaceMarshalFunc = func(v interface{}) ([]byte, error) {
-		//	buffer := bytes.NewBuffer([]byte{})
-		//	en := json.NewEncoder(buffer)
-		//	en.SetEscapeHTML(false)
-		//	en.SetIndent("", "")
-		//	err := en.Encode(v)
-		//	return buffer.Bytes(), err
-		//}
 
 		simpleHook := zerolog.HookFunc(func(e *zerolog.Event, level zerolog.Level, msg string) {
 			if _, file, line, ok := runtime.Caller(4); ok {
@@ -168,16 +162,17 @@ func Logger() Option {
 
 		ip, _ := a.intranetIP()
 		log.Logger = zerolog.New(os.Stdout).Level(level).Hook(simpleHook).With().Timestamp().
-			Fields(map[string]interface{}{"nodeId": a.nodeID}).IPAddr("ip", net.ParseIP(ip)).Logger()
+			Fields(map[string]interface{}{"id": a.nodeID}).IPAddr("ip", net.ParseIP(ip)).Logger()
 		log.Info().Msg("Init logger successfully.")
 
+		loglevel, _ := logger.GetLevel(lv)
 		logger.DefaultLogger = zlog.NewLogger(
 			logger.WithOutput(os.Stdout),
-			logger.WithLevel(logger.DebugLevel),
+			logger.WithLevel(loglevel),
 			zlog.WithTimeFormat(timeFormat),
 			zlog.WithProductionMode(),
 			zlog.WithHooks([]zerolog.Hook{simpleHook}),
-			logger.WithFields(map[string]interface{}{"nodeId": a.nodeID, "ip": ip}),
+			logger.WithFields(map[string]interface{}{"id": a.nodeID, "ip": ip}),
 		)
 		return nil
 	}
@@ -191,7 +186,7 @@ func KVStore() Option {
 		a.kvStore, err = libkv.NewStore(libKVStore.CONSUL, []string{addr},
 			&libKVStore.Config{ConnectionTimeout: 10 * time.Second})
 		if err != nil {
-			return errors.Wrapf(err, "KVStore: %s", consulAddrKey)
+			return errors.Wrapf(err, "option KVStore %s", consulAddrKey)
 		}
 		return nil
 	}
@@ -207,7 +202,7 @@ func RedisCli() Option {
 			Password: "",
 		})
 		if err != nil {
-			return errors.Wrapf(err, "RedisCli(): %s", "redis")
+			return errors.Wrapf(err, "options RedisCli")
 		}
 
 		if conf.Mode == redisModeCluster {
@@ -254,7 +249,7 @@ func MySQLCli() Option {
 			Database: "db_player",
 		})
 		if err != nil {
-			return errors.Wrapf(err, "MySQLCli(): %s", "mysql")
+			return errors.Wrap(err, "option MySQLCli")
 		}
 
 		a.mysqlCli, err = mysql.NewMysqlPoolWithTrace(&mysql.Config{
@@ -292,7 +287,7 @@ func MongoCli() Option {
 			Database: "ffa",
 		})
 		if err != nil {
-			return errors.Wrapf(err, "MongoCli(): %s", "mongodb")
+			return errors.Wrap(err, "option MongoCli")
 		}
 
 		a.mongoCli, err = mongo.NewClient(&mongo.Config{
@@ -334,17 +329,22 @@ func Dao() Option {
 // UseCase ...
 func UseCase() Option {
 	return func(a *app) error {
-		conf := &bizConf{}
-		defaultCfg := &bizConf{
-			ActiveBeginTime: time.Now().Format("2021-10-06 00:00:00"),
+		conf := &innerConfig.BizConf{}
+		defConf := &innerConfig.BizConf{
+			ThirdParty: "http://httpbin.org",
 		}
-		err := a.getConsulConf(bizConfKey, conf, defaultCfg)
+		err := a.getConsulConf(innerConfig.BizConfKey, conf, defConf)
 		if err != nil && err != libKVStore.ErrKeyNotFound {
-			return errors.Wrapf(err, "UseCase(): %s", bizConfKey)
+			return errors.Wrapf(err, "option UseCase get key %s", innerConfig.BizConfKey)
 		}
-		_ = mergo.Merge(conf, defaultCfg)
+
+		// 防止少配参数
+		if err = mergo.Merge(conf, defConf); err != nil {
+			return errors.Wrap(err, "option UseCase merge config")
+		}
+
 		a.useCase = service.NewUseCase(a.dao, conf)
-		return a.watchConsulConf(bizConfKey, conf)
+		return a.watchConsulConf(innerConfig.BizConfKey, conf)
 	}
 }
 
@@ -356,7 +356,7 @@ func RpcService() Option {
 			Port: ":18086",
 		})
 		if err != nil {
-			return errors.Wrapf(err, "RpcService(): %s", "rpc")
+			return errors.Wrap(err, "option RpcService")
 		}
 
 		consulAddr := a.conf.Get(consulAddrKey).String(consulAddrDef)
@@ -387,7 +387,7 @@ func RpcService() Option {
 
 		err = proto.RegisterGreeterHandler(a.rpcService.Server(), rpc.NewRpcHandler(a.useCase))
 		if err != nil {
-			return errors.Wrapf(err, "RpcService(): %s", "rpc")
+			return errors.Wrap(err, "option RpcService")
 		}
 
 		log.Info().Msg("New rpc service successfully.")
@@ -404,10 +404,9 @@ func WebService() Option {
 			Port:    ":8086",
 		})
 		if err != nil {
-			return errors.Wrapf(err, "WebService(): %s", "web")
+			return errors.Wrap(err, "option WebService")
 		}
 
-		// consul配置优先级高于环境变量
 		if conf.GinMode != gin.DebugMode {
 			gin.SetMode(conf.GinMode)
 		}
@@ -485,7 +484,7 @@ func Monitor() Option {
 		err := a.getConsulConf("metrics", conf, defaultCfg)
 
 		if err != nil && err != libKVStore.ErrKeyNotFound {
-			return errors.Wrapf(err, "Monitor(): %s", "metrics")
+			return errors.Wrap(err, "option Monitor")
 		}
 
 		_ = mergo.Merge(conf, defaultCfg)

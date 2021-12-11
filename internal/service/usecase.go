@@ -8,7 +8,7 @@ import (
 var _ UseCase = (*useCaseImpl)(nil)
 
 type config interface {
-	GetActiveBeginTime() string
+	GetThirdParty() string
 }
 
 type UseCase interface {

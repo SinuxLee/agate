@@ -19,6 +19,7 @@ var _ Client = (*client)(nil)
 
 type Client interface {
 	FindOne(ctx context.Context, table string, filter interface{}, data interface{}) error
+	FindOneWithProjection(ctx context.Context, table string, filter interface{}, projection interface{}, data interface{}) error
 	Find(ctx context.Context, table string, filter interface{}, data interface{}) error
 	UpdateOne(ctx context.Context, table string, filter interface{}, data interface{}) error
 	UpsertOne(ctx context.Context, table string, filter interface{}, data interface{}) error
@@ -46,7 +47,8 @@ func NewClient(conf *Config) (Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 	opts := options.Client().SetMaxPoolSize(uint64(conf.MaxPoolSize)).SetMinPoolSize(uint64(conf.MinPoolSize)).
-		SetMaxConnIdleTime(time.Duration(conf.MaxIdleTime) * time.Second).SetHosts(conf.Hosts)
+		SetMaxConnIdleTime(time.Duration(conf.MaxIdleTime) * time.Second).SetHosts(conf.Hosts).
+		SetSocketTimeout(10 * time.Second)
 	if conf.UserName != "" && conf.Password != "" {
 		opts = opts.SetAuth(options.Credential{
 			Username:   conf.UserName,
@@ -81,6 +83,13 @@ type client struct {
 func (c *client) FindOne(ctx context.Context, table string, filter interface{}, data interface{}) error {
 	collection := c.cli.Database(c.conf.Database).Collection(table)
 	return collection.FindOne(ctx, filter).Decode(data)
+}
+
+func (c *client) FindOneWithProjection(ctx context.Context, table string, filter interface{},
+	projection interface{}, data interface{}) error {
+	opt := options.FindOne().SetProjection(projection)
+	collection := c.cli.Database(c.conf.Database).Collection(table)
+	return collection.FindOne(ctx, filter, opt).Decode(data)
 }
 
 func (c *client) Find(ctx context.Context, table string, filter interface{}, data interface{}) error {

@@ -1,26 +1,23 @@
 package app
 
 import (
-	"encoding/json"
 	"fmt"
-	"sync"
 )
 
 const (
 	redisModeCluster = "cluster"
 	// redisModeStandalone = "standalone"
-
-	bizConfKey = "biz"
 )
 
+// ConfigObserver 动态更新
 type ConfigObserver interface {
-	OnConfigChanged(key string, data []byte)
+	OnConfigChanged(key string, data []byte) error
 }
 
-type ConfigHandler func(key string, data []byte)
+type ConfigHandler func(key string, data []byte) error
 
-func (f ConfigHandler) OnConfigChanged(key string, data []byte) {
-	f(key, data)
+func (f ConfigHandler) OnConfigChanged(key string, data []byte) error {
+	return f(key, data)
 }
 
 type redisConf struct {
@@ -65,26 +62,4 @@ type webConf struct {
 
 type rpcConf struct {
 	Port string `json:"port"`
-}
-
-type bizConf struct {
-	rw              sync.RWMutex
-	ActiveBeginTime string `json:"activeBeginTime"`
-}
-
-func (biz *bizConf) OnConfigChanged(key string, data []byte) {
-	biz.rw.Lock()
-	defer biz.rw.Unlock()
-
-	switch key {
-	case bizConfKey:
-		_ = json.Unmarshal(data, biz)
-	}
-}
-
-func (biz *bizConf) GetActiveBeginTime() string {
-	biz.rw.RLock()
-	defer biz.rw.RUnlock()
-
-	return biz.ActiveBeginTime
 }
