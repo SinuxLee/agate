@@ -52,11 +52,14 @@ func Logger() gin.HandlerFunc {
 		c.Writer = rw
 		begin := time.Now()
 
-		body := make([]byte, 0)
+		body := make([]byte, 0, 8)
 		if c.Request.Body != nil {
 			body, _ = c.GetRawData()
 			_ = c.Request.Body.Close()
 			c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+		}
+		if len(body) == 0 {
+			body = append(body, '{', '}')
 		}
 
 		c.Next()

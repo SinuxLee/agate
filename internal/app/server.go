@@ -58,7 +58,7 @@ type App interface {
 
 // New ...
 func New(options ...Option) (App, error) {
-	svc := &app{}
+	svc := &app{ctx: context.Background()}
 	for _, opt := range options {
 		if err := opt(svc); err != nil {
 			return nil, err
@@ -79,6 +79,7 @@ type app struct {
 	mongoCli   mongo.Client
 	dao        store.Dao
 	kvStore    libKVStore.Store
+	ctx        context.Context
 }
 
 // Run ...

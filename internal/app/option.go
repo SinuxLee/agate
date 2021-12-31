@@ -7,7 +7,6 @@ import (
 	"os"
 	"runtime"
 	"strings"
-	"template/pkg/infra/monitoring"
 	"time"
 
 	"template/internal/api/rest"
@@ -16,6 +15,7 @@ import (
 	"template/internal/service"
 	"template/internal/store"
 	"template/pkg/infra/mongo"
+	"template/pkg/infra/monitoring"
 	"template/pkg/infra/mysql"
 	"template/pkg/infra/nid"
 	"template/pkg/middleware"
@@ -114,11 +114,11 @@ func NodeID() Option {
 		a.nodeID, err = nodeNamed.GetNodeID(&nid.NameHolder{
 			LocalPath:  os.Args[0],
 			LocalIP:    ip,
-			ServiceKey: serverName,
+			ServiceKey: serviceKey,
 		})
 
 		if err != nil {
-			return errors.Wrapf(err, "get nodeid: %s", consulAddrKey)
+			return errors.Wrapf(err, "get consul nodeid: %s", serviceKey)
 		}
 
 		return nil
