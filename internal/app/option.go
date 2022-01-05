@@ -83,7 +83,8 @@ func Version(versionInfo string) Option {
 	return func(a *app) (err error) {
 		printVersion := a.conf.Get(printVersionKey).Bool(printVersionDef)
 		if printVersion {
-			_, _ = fmt.Fprintf(os.Stderr, "%v build info: %v\n", serverName, versionInfo)
+			_, _ = fmt.Fprintf(os.Stderr, "%v build info: %v\n", serverName,
+				strings.ReplaceAll(versionInfo, "_", "\n"))
 			os.Exit(0)
 		}
 
