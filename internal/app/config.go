@@ -44,10 +44,11 @@ func (m *mysqlConf) Info() string {
 }
 
 type mongodbConf struct {
-	Host     []string `json:"host"`
-	User     string   `json:"user"`
-	Password string   `json:"password"`
-	Database string   `json:"database"`
+	Host       []string `json:"host"`
+	User       string   `json:"user"`
+	Password   string   `json:"password"`
+	AuthSource string   `json:"authSource"`
+	Database   string   `json:"database"`
 }
 
 func (m *mongodbConf) Info() string {

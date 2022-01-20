@@ -282,10 +282,11 @@ func MongoCli() Option {
 	return func(a *app) (err error) {
 		conf := &mongodbConf{}
 		err = a.getConsulConf("mongodb", conf, &mongodbConf{
-			Host:     []string{"127.0.0.1:27017"},
-			User:     "",
-			Password: "",
-			Database: "ffa",
+			Host:       []string{"127.0.0.1:27017"},
+			User:       "",
+			Password:   "",
+			AuthSource: "admin",
+			Database:   "ffa",
 		})
 		if err != nil {
 			return errors.Wrap(err, "option MongoCli")
@@ -296,6 +297,7 @@ func MongoCli() Option {
 			Database:    conf.Database,
 			UserName:    conf.User,
 			Password:    conf.Password,
+			AuthSource:  conf.AuthSource,
 			MaxPoolSize: 200,
 			MinPoolSize: 10,
 			MaxIdleTime: 3600,

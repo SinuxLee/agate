@@ -38,6 +38,7 @@ type Config struct {
 	Database    string
 	UserName    string
 	Password    string
+	AuthSource  string
 	MaxPoolSize uint
 	MinPoolSize uint
 	MaxIdleTime uint

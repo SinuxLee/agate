@@ -32,6 +32,7 @@ require (
 	github.com/juju/ratelimit v1.0.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
+	github.com/rs/xid v1.2.1
 	github.com/rs/zerolog v1.23.0
 	github.com/sinuxlee/gin-limiter v1.0.1
 	github.com/swaggo/gin-swagger v1.3.2
