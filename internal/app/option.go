@@ -347,6 +347,7 @@ func UseCase() Option {
 		}
 
 		a.useCase = service.NewUseCase(a.dao, conf)
+		a.watchConsulConfTree("test", conf)
 		return a.watchConsulConf(innerConfig.BizConfKey, conf)
 	}
 }

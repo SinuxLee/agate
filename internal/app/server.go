@@ -7,7 +7,10 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"syscall"
+
+	"github.com/rs/zerolog/log"
 
 	"template/internal/service"
 	"template/internal/store"
@@ -189,7 +192,32 @@ func (a *app) watchConsulConf(key string, observer ConfigObserver) error {
 
 	go func() {
 		for kv := range kvChan {
-			_ = observer.OnConfigChanged(key, kv.Value)
+			if err = observer.OnConfigChanged(key, kv.Value); err != nil {
+				log.Err(err).Str("key", key).Str("value", string(kv.Value)).Msg("watch consul key")
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (a *app) watchConsulConfTree(root string, observer ConfigObserver) error {
+	kvChan, err := a.kvStore.WatchTree(a.makeConsulKey(root), make(chan struct{}, 1))
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for kv := range kvChan {
+			for _, pair := range kv {
+				if pair.Value == nil {
+					continue
+				}
+				idx := strings.LastIndex(pair.Key, root) + len(root)
+				if err = observer.OnConfigChanged(strings.TrimPrefix(pair.Key[idx:], "/"), pair.Value); err != nil {
+					log.Err(err).Str("key", pair.Key).Str("value", string(pair.Value)).Msg("watch consul dir")
+				}
+			}
 		}
 	}()
 

@@ -3,6 +3,8 @@ package config
 import (
 	"encoding/json"
 	"sync"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -21,9 +23,9 @@ func (biz *BizConf) OnConfigChanged(key string, data []byte) error {
 	switch key {
 	case BizConfKey:
 		return json.Unmarshal(data, biz)
+	default:
+		return errors.Errorf("unknwon key '%v'", key)
 	}
-
-	return nil
 }
 
 func (biz *BizConf) GetThirdParty() string {
