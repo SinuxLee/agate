@@ -110,7 +110,12 @@ func (c *restHandler) ErrorLog(ctx *gin.Context, resp *internal.Response) {
 func (c *restHandler) swaggerDocs(engine *gin.Engine) {
 	docs.SwaggerInfo.Host = c.swaggerHost
 	url := ginSwagger.URL(fmt.Sprintf("http://%v/swagger/doc.json", c.swaggerHost))
-	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))
+	engine.GET("/swagger/*any", func(c *gin.Context) {
+		if strings.TrimPrefix(c.Param("any"), "/") == "" {
+			c.Redirect(http.StatusTemporaryRedirect, "/swagger/index.html")
+			c.Abort()
+		}
+	}, ginSwagger.WrapHandler(swaggerFiles.Handler, url))
 }
 
 func (c *restHandler) healthCheck(engine *gin.Engine) {
