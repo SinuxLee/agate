@@ -12,8 +12,9 @@ import (
 // @Description get greet by name
 // @Accept json
 // @Produce json
-// @Param name path string true "libz"
-// @Param Content-Type header string true "application/json" default(application/json)
+// @Param name path string true "昵称" default(libz)
+// @Param code query string true "区服编号" default(1001)
+// @Param Content-Type header string true "数据格式" default(application/json)
 // @Success 200 {object} internal.Response{data=internal.HelloRsp} "响应体"
 // @Router /v1/hello/{name} [get]
 func (c *restHandler) Hello(ctx *gin.Context) {
