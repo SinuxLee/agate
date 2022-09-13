@@ -40,6 +40,7 @@ import (
 	libKVConsul "github.com/docker/libkv/store/consul"
 	"github.com/felixge/fgprof"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
@@ -433,6 +434,7 @@ func WebService() Option {
 			ginRouter = gin.Default()
 		}
 		ginRouter.Use(cors.Default(), middleware.NewRateLimiter(time.Second, 10000))
+		ginRouter.Use(gzip.Gzip(gzip.DefaultCompression))
 		ginRouter.Use(monitoring.GinHandler())
 		ginRouter.NoRoute(func(ctx *gin.Context) {
 			ctx.AbortWithStatus(http.StatusNotFound)

@@ -14,7 +14,7 @@ ver_info="_branch:"${branch}_"commitid:"${commit_id}_"date:"${datetime}_"goversi
 project=svr
 platform=$(uname)
 
-if go build -ldflags "-X main.version=${ver_info}"  -mod=mod -o $project cmd/$project/main.go; then
+if go build -ldflags "-X main.version=${ver_info}"  -mod=mod -o $project cmd/$project/*; then
     if [ "$platform" == "Darwin" ] || echo "$platform" | grep -q "MINGW"; then
 	      tar -czf $project.tar.gz $project
         rm $project

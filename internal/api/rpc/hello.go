@@ -14,6 +14,7 @@ func (r *rpcHandler) Hello(ctx context.Context, req *proto.HelloRequest, rsp *pr
 	log.Info().Interface("metadata", md).Msg("receive request")
 	data, err := r.useCase.Hello(ctx, req.Name)
 	if err != nil {
+		log.Err(err).Msg("bad request")
 		return err
 	}
 

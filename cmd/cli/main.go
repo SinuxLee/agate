@@ -9,7 +9,6 @@ import (
 
 	"github.com/asim/go-micro/plugins/client/http/v3"
 	"github.com/asim/go-micro/plugins/registry/consul/v3"
-	selectorReg "github.com/asim/go-micro/plugins/selector/registry"
 	"github.com/asim/go-micro/plugins/selector/shard/v3"
 	"github.com/asim/go-micro/plugins/transport/grpc/v3"
 	"github.com/asim/go-micro/plugins/wrapper/breaker/hystrix/v3"
@@ -18,6 +17,7 @@ import (
 	"github.com/asim/go-micro/v3/registry"
 	"github.com/asim/go-micro/v3/selector"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -41,8 +41,8 @@ type HelloRsp struct {
 }
 
 func main() {
-	rpcCli()
 	webCli()
+	rpcCli()
 }
 
 func webCli() {
@@ -52,7 +52,6 @@ func webCli() {
 	)
 
 	sel := selector.NewSelector(
-		selectorReg.TTL(time.Hour),
 		selector.Registry(reg),
 	)
 
@@ -70,7 +69,7 @@ func webCli() {
 
 	// 只能调用POST 方法
 	rsp := &HelloRsp{}
-	req := cli.NewRequest("svrWEB", "/svr/v1/hello", emptyData)
+	req := cli.NewRequest("svrWEB", "/svr/v1/hello/libz", emptyData)
 	err := cli.Call(context.TODO(), req, rsp)
 	if err != nil {
 		fmt.Println(err)
@@ -95,11 +94,11 @@ func rpcCli() {
 
 	// Make request
 	req := &proto.HelloRequest{
-		Name: "John",
+		Name: "libz",
 	}
 	rsp, err := cl.Hello(context.Background(), req, shard.Strategy(req.Name)) // chash
 	if err != nil {
-		fmt.Println(err)
+		log.Err(err).Msg("Hello request failed")
 		return
 	}
 

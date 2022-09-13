@@ -3,6 +3,7 @@ package rest
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"template/internal/api/rest/docs"
 	"template/internal/api/rest/internal"
