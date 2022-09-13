@@ -24,7 +24,7 @@
     "paths": {
         "/v1/hello/{name}": {
             "get": {
-                "description": "get greet by name",
+                "description": "这里写一大段描述\n还支持多行",
                 "consumes": [
                     "application/json"
                 ],
@@ -38,18 +38,51 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "libz",
+                        "default": "libz",
+                        "description": "昵称",
                         "name": "name",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "string",
+                        "default": "1001",
+                        "description": "区服编号",
+                        "name": "code",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
                         "default": "application/json",
-                        "description": "application/json",
+                        "description": "数据格式",
                         "name": "Content-Type",
                         "in": "header",
                         "required": true
+                    },
+                    {
+                        "description": "测试数据",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "type": "object"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "age": {
+                                            "type": "integer"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
                     }
                 ],
                 "responses": {
@@ -58,13 +91,19 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/internal.Response"
+                                    "type": "object"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
                                         "data": {
                                             "$ref": "#/definitions/internal.HelloRsp"
+                                        },
+                                        "message": {
+                                            "type": "string"
                                         }
                                     }
                                 }
@@ -80,20 +119,6 @@
             "type": "object",
             "properties": {
                 "greet": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal.Response": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "type": "object"
-                },
-                "message": {
                     "type": "string"
                 }
             }
