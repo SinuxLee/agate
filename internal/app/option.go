@@ -451,6 +451,8 @@ func WebService() Option {
 		if err != nil {
 			return errors.Wrap(err, "option WebService")
 		}
+
+		// Test Mode 支持同机多进程部署
 		if ginMode == gin.TestMode {
 			conf.Port = conf.Port + uint16(a.nodeID-1)
 		}

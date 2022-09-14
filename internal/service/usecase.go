@@ -12,6 +12,7 @@ type config interface {
 }
 
 type UseCase interface {
+	NewDistLock(key string) store.DistLock
 	Hello(ctx context.Context, name string) (string, error)
 }
 
@@ -25,4 +26,8 @@ func NewUseCase(d store.Dao, conf config) UseCase {
 type useCaseImpl struct {
 	dao  store.Dao
 	conf config
+}
+
+func (uc *useCaseImpl) NewDistLock(key string) store.DistLock {
+	return uc.dao.NewDistLock(key)
 }

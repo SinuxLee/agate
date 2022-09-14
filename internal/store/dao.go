@@ -11,6 +11,7 @@ import (
 var _ Dao = (*daoImpl)(nil)
 
 type Dao interface {
+	Lock
 	Hello(ctx context.Context, name string) (string, error)
 }
 

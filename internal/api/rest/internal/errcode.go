@@ -11,6 +11,7 @@ const (
 	CodeVerifyToken                // 验证 token 出错
 	CodeIllegalToken               // 非法 token
 	CodePlayerInfo                 // 获取玩家失败
+	CodeLockFailure                // 加锁失败
 )
 
 func init() {
@@ -20,4 +21,5 @@ func init() {
 	CodeText[CodeVerifyToken] = "something wrong when verify token"
 	CodeText[CodeIllegalToken] = "illegal token"
 	CodeText[CodePlayerInfo] = "failed to get player info"
+	CodeText[CodeLockFailure] = "failed to lock user"
 }

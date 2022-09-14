@@ -37,12 +37,12 @@ type NameHolder struct {
 	ServiceKey string `json:"-"`
 }
 
-func (h *NameHolder) DecodeInfo(data []byte) error {
+func (h *NameHolder) decode(data []byte) error {
 	err := json.Unmarshal(data, h)
 	return err
 }
 
-func (h *NameHolder) EncodeInfo() ([]byte, error) {
+func (h *NameHolder) encode() ([]byte, error) {
 	return json.Marshal(h)
 }
 
@@ -111,20 +111,20 @@ type nodeNamed struct {
 
 func (c *nodeNamed) GetNodeID(holder *NameHolder) (nodeID int, err error) {
 	holder.LocalPath, _ = filepath.Abs(holder.LocalPath)
-	nodeID, err = c.RecoverNodeID(holder)
+	nodeID, err = c.recoverNodeID(holder)
 	if err != nil {
 		return
 	}
 
 	if nodeID == 0 {
-		nodeID, err = c.ApplyNodeID(holder)
+		nodeID, err = c.applyNodeID(holder)
 	}
 
 	return
 }
 
 // RecoverNodeID 恢复配置
-func (c *nodeNamed) RecoverNodeID(holder *NameHolder) (int, error) {
+func (c *nodeNamed) recoverNodeID(holder *NameHolder) (int, error) {
 	kvPairs, err := c.List(holder.ServiceKey)
 	if err != nil {
 		if err != store.ErrKeyNotFound {
@@ -134,23 +134,23 @@ func (c *nodeNamed) RecoverNodeID(holder *NameHolder) (int, error) {
 
 	for _, pair := range kvPairs {
 		info := &NameHolder{}
-		if info.DecodeInfo(pair.Value) != nil ||
+		if info.decode(pair.Value) != nil ||
 			info.LocalIP != holder.LocalIP ||
 			info.LocalPath != holder.LocalPath {
 			continue
 		}
 
-		if err := c.TryHold(pair, holder); err != nil {
+		if err := c.tryHold(pair, holder); err != nil {
 			return 0, err
 		}
 
-		return c.ConvertStringToID(pair.Key), nil
+		return c.convertStringToID(pair.Key), nil
 	}
 	return 0, nil
 }
 
 // ApplyNodeID 申请配置
-func (c *nodeNamed) ApplyNodeID(holder *NameHolder) (int, error) {
+func (c *nodeNamed) applyNodeID(holder *NameHolder) (int, error) {
 	for i := 0; i < c.retryCount; i++ {
 		pairs, err := c.List(holder.ServiceKey)
 		if err != nil {
@@ -159,9 +159,9 @@ func (c *nodeNamed) ApplyNodeID(holder *NameHolder) (int, error) {
 			}
 		}
 
-		newID := c.MakeNewID(pairs)
-		if err := c.TryHold(&store.KVPair{
-			Key:       c.MakeConsulKey(holder.ServiceKey, newID),
+		newID := c.makeNewID(pairs)
+		if err := c.tryHold(&store.KVPair{
+			Key:       c.makeConsulKey(holder.ServiceKey, newID),
 			LastIndex: 0,
 		}, holder); err == nil {
 			return newID, nil
@@ -170,10 +170,10 @@ func (c *nodeNamed) ApplyNodeID(holder *NameHolder) (int, error) {
 	return 0, errors.Errorf("try to hold %d times, but failed", c.retryCount)
 }
 
-func (c *nodeNamed) MakeNewID(pairs []*store.KVPair) int {
+func (c *nodeNamed) makeNewID(pairs []*store.KVPair) int {
 	usedIDs := make([]int, 256)
 	for _, pair := range pairs {
-		nid := c.ConvertStringToID(pair.Key)
+		nid := c.convertStringToID(pair.Key)
 		if nid >= len(usedIDs) {
 			tmp := usedIDs
 			usedIDs := make([]int, nid*2)
@@ -192,7 +192,7 @@ func (c *nodeNamed) MakeNewID(pairs []*store.KVPair) int {
 	return newID
 }
 
-func (c *nodeNamed) ConvertStringToID(s string) int {
+func (c *nodeNamed) convertStringToID(s string) int {
 	paths := strings.Split(s, "/")
 	length := len(paths)
 	if length == 0 {
@@ -206,11 +206,11 @@ func (c *nodeNamed) ConvertStringToID(s string) int {
 	return id
 }
 
-func (c *nodeNamed) MakeConsulKey(nodeKeyPrefix string, id int) string {
-	return nodeKeyPrefix + fmt.Sprintf("/nodeId/%v%02v", nodePrefix, id)
+func (c *nodeNamed) makeConsulKey(nodeKeyPrefix string, id int) string {
+	return fmt.Sprintf("%v/nodeId/%v%02v", nodeKeyPrefix, nodePrefix, id)
 }
 
-func (c *nodeNamed) TryHold(pair *store.KVPair, holder *NameHolder) error {
+func (c *nodeNamed) tryHold(pair *store.KVPair, holder *NameHolder) error {
 	newPair, err := c.Get(pair.Key)
 	if err != nil {
 		if err != store.ErrKeyNotFound {
@@ -223,7 +223,7 @@ func (c *nodeNamed) TryHold(pair *store.KVPair, holder *NameHolder) error {
 	}
 
 	holder.ApplyTime = time.Now().Format(timeFormat)
-	pair.Value, err = holder.EncodeInfo()
+	pair.Value, err = holder.encode()
 	if err != nil {
 		return err
 	}

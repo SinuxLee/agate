@@ -125,12 +125,34 @@ func (c *restHandler) healthCheck(engine *gin.Engine) {
 	})
 }
 
+func (c *restHandler) tryLockUser(ctx *gin.Context) {
+	userID := ctx.GetHeader("X-QP-UserId")
+	if userID == "" {
+		return
+	}
+
+	dLock := c.useCase.NewDistLock(userID)
+	if !dLock.TryLock(5, 50) {
+		c.ResponseWithCode(ctx, internal.CodeLockFailure)
+		log.Error().Str("userId", userID).Str("URL", ctx.Request.URL.Path).Msg("failed to lock user")
+		ctx.Abort()
+		return
+	}
+
+	ctx.Next()
+
+	if !dLock.UnLock() {
+		log.Error().Str("userId", userID).Str("URL", ctx.Request.URL.Path).Msg("failed to unlock user")
+	}
+}
+
 func (c *restHandler) RegisterHandler(engine *gin.Engine) error {
 	c.healthCheck(engine)
 	c.swaggerDocs(engine)
 
 	group1 := engine.Group("/svr/v1")
 	group1.Use(middleware.Logger())
+	group1.Use(c.tryLockUser)
 	group1.GET("hello/:name", c.Hello)
 	group1.POST("hello/:name", c.Hello)
 
