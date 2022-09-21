@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/asim/go-micro/plugins/client/http/v3"
 	"github.com/asim/go-micro/plugins/registry/consul/v3"
@@ -30,12 +29,16 @@ type Client interface {
 func NewClient(consulAddr string) (Client, error) {
 	reg := consul.NewRegistry(
 		registry.Addrs(consulAddr),
-		registry.Timeout(time.Second*10),
 	)
 
 	sel := selector.NewSelector(
 		selector.Registry(reg),
 	)
+
+	hystrix.ConfigureDefault(hystrix.CommandConfig{
+		Timeout:               2000,
+		MaxConcurrentRequests: 1000,
+	})
 
 	cli := http.NewClient(
 		microClient.Selector(sel),

@@ -7,5 +7,6 @@ type HellResult struct {
 }
 
 func (d *daoImpl) Hello(ctx context.Context, name string) (string, error) {
-	return d.redisRepo.Get(ctx, name).Result()
+	// return d.redisRepo.Get(ctx, name).Result()
+	return "biubiu", nil
 }

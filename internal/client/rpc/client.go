@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"fmt"
-	"time"
 
 	"template/pkg/proto"
 
@@ -26,7 +25,6 @@ type GreeterClient interface {
 func NewGreeterClient(consulAddr string) GreeterClient {
 	reg := consul.NewRegistry(
 		registry.Addrs(consulAddr),
-		registry.Timeout(time.Second*10),
 	)
 
 	sel := selector.NewSelector(
@@ -34,6 +32,10 @@ func NewGreeterClient(consulAddr string) GreeterClient {
 		selector.SetStrategy(selector.RoundRobin),
 	)
 
+	hystrix.ConfigureDefault(hystrix.CommandConfig{
+		Timeout:               2000,
+		MaxConcurrentRequests: 1000,
+	})
 	cli := microClient.NewClient(
 		microClient.Selector(sel),
 		microClient.Transport(grpc.NewTransport()),
