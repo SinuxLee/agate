@@ -23,6 +23,7 @@ require (
 	github.com/gin-contrib/pprof v1.3.0
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-redis/redis/v8 v8.11.5
+	github.com/go-resty/resty/v2 v2.1.1-0.20191201195748-d7b97669fe48
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/google/gops v0.3.23
 	github.com/hedemonde/go-gin-prometheus v0.1.2
@@ -34,7 +35,6 @@ require (
 	github.com/rs/xid v1.4.0
 	github.com/rs/zerolog v1.27.0
 	github.com/sinuxlee/gin-limiter v1.0.1
-	github.com/spf13/cast v1.3.1
 	github.com/swaggo/gin-swagger v1.3.2
 	github.com/swaggo/swag v1.7.3
 	github.com/valyala/bytebufferpool v1.0.0
